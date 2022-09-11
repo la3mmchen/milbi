@@ -23,13 +23,9 @@ class Milbi():
     debug: bool
         print additional output
 
-    logfile: string
-        if set log all actions to this file
-
     """
     config = None
     debug = None
-    logfile = None
 
     _content = None
     _fileLocation = None
@@ -38,33 +34,24 @@ class Milbi():
     _shellEnv = None
 
 
-    def __init__(self, config="config.yaml", debug=False, logfile=None):
+    def __init__(self, config="config.yaml", debug=False):
         self.debug = debug
-        self.logfile = logfile
 
         self._timestamp = calendar.timegm(time.gmtime())
 
-        # handle relative paths
+        # handle relative paths for config
+        self._fileLocation = self._makePathAbsolute(config)
 
-        # .. for config
-        if not os.path.isabs(config):
-            self._fileLocation = os.path.join(os.getcwd(), config)
-        else:
-            self._fileLocation = config
-
-        # .. for logfile
-        if logfile is not None and '~' in logfile:
-            logfile = os.path.expanduser(logfile)
-        if logfile is not None and not os.path.isabs(logfile):
-            self.logfile = os.path.join(os.getcwd(), logfile)
-        else:
-            self.logfile = logfile
-
-        if self.logfile is not None:
-              print(f"logging to {self.logfile}")
-              self._logfileHandle = open(self.logfile, "a")
-
+        # load content from config file
         self._content = self._loadConfig(self._fileLocation)
+
+        # handle relative paths
+        self._content['global']['logfile'] = self._makePathAbsolute(self._content['global']['logfile'])
+        self._content['global']['restore']['dir'] = self._makePathAbsolute(self._content['global']['restore']['dir'])
+
+        # create a filehandle to log
+        print(f"logging to {self._content['global']['logfile']}")
+        self._logfileHandle = open(self._content['global']['logfile'], "a")
 
         if self.debug:
             self._toConsole(f"---")
@@ -83,8 +70,7 @@ class Milbi():
 
 
     def __del__(self):
-        if self.logfile is not None:
-            self._logfileHandle.close()
+        self._logfileHandle.close()
 
     def _toConsole(self, message):
         print(f"{message}")
@@ -287,10 +273,32 @@ class Milbi():
                 self._toConsole(f"ERROR: ({e}).")
                 sys.exit(1)
 
-    def _getLastArchive(self):
-        """
-        returns identifier for the last
-        """
+
+    def open(self):
+      """
+      open backup
+
+      Parameters
+      ----------
+      """
+
+      if self._content['global']['restore']['dir']:
+          if not os.path.exists(os.path.dirname(self._content['global']['restore']['dir'])):
+              self._toConsole(f"ERROR: target directory {self._content['global']['restore']['dir']} does not exists.")
+
+      sys.exit(1)
+      if 'borgbackup' in self._content:
+          cmd = [
+              "mount",
+              self._content['borgbackup']['repo'],
+              self._content['restore']['dir']
+          ]
+          try:
+              self._cmdRunBorg(cmd)
+          except Exception as e:
+              self._toConsole(f"ERROR: ({e}).")
+              sys.exit(1)
+
 
     def _cmdRunBorg(self, cmd):
         """
@@ -316,8 +324,7 @@ class Milbi():
         if self.debug:
             print(f"{shlex.join(command)}")
 
-        if self.logfile is not None:
-            self._logfileHandle.write(f"{time.ctime(self._timestamp)} command: {shlex.join(command)} \n")
+        self._logfileHandle.write(f"{time.ctime(self._timestamp)} command: {shlex.join(command)} \n")
 
 
         try:
@@ -333,8 +340,21 @@ class Milbi():
             raise Exception(e)
 
         # handle log output
-        if self.logfile is not None:
-            self._logfileHandle.write(f"{time.ctime(self._timestamp)} stdout: {result.stdout} \n")
-            self._logfileHandle.write(f"{time.ctime(self._timestamp)} stderr: {result.stderr} \n")
+        self._logfileHandle.write(f"{time.ctime(self._timestamp)} stdout: {result.stdout} \n")
+        self._logfileHandle.write(f"{time.ctime(self._timestamp)} stderr: {result.stderr} \n")
 
         return (result.returncode, result.stdout, result.stderr)
+
+
+    def _makePathAbsolute(self, inPath):
+      """
+      function to make sure a path is an absolute path
+      """
+
+      if '~' in inPath:
+          inPath = os.path.expanduser(inPath)
+      if not os.path.isabs(inPath):
+          inPath = os.path.join(os.getcwd(), inPath)
+      absPath = inPath
+
+      return absPath

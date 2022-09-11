@@ -17,6 +17,13 @@ milbi reads config files.
 this is how to configure milbi to do backups with borg:
 
 ```yaml
+
+global:
+  debug: True
+  logfile: "~/borgbackup.log"
+  restore:
+      dir: "~/mnt"
+
 borgbackup:
   bin: "<path to binary>"
   passphrase: "<key for decryption>"
