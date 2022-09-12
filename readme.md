@@ -1,61 +1,29 @@
 # milbi
 
-handles local backup & to some point supports the restore process.
+__work in progress__
 
-for me it is at least better then the random bash scripts i had before.
-
-at the moment mibli can be configured to do backups with following technologies:
-
-- backups with restic (https://restic.readthedocs.io/)
-- backups with borg (https://borgbackup.readthedocs.io/)
-
-additional milbi supports:
-
-- copy with rsync
-
-## help
+a way to describe local backups - in a declarative way.
+i wrote it for myself to get rid of my random backup bash scripts that i had before.
 
 ```bash
-NAME
-    milbi - handles local backup & to some point supports the restore process.
-
-SYNOPSIS
-    milbi - COMMAND | VALUE
-
-DESCRIPTION
-    for me it is at least better then the random bash scripts i had before.
-
-COMMANDS
-    COMMAND is one of the following:
-
-     backup
-       Executes a backup
-
-     check
-       check backups if possible
-
-     close
-       close open backup
-
-     config
-       Shows the current config.
-
-     get
-       open backup (either by mounting or restoring)
-
-     info
-       show info of the existing repos (snapshots, repos, ...)
-
-     prune
-       if possible prune backups to
-
-     sync
-       execute configured syncs
+./milby.py
 ```
+
+## features
+
+at the moment, mibli can be configured to do backups with following technologies:
+
+- backups with [restic](https://restic.readthedocs.io/)
+- backups with [borg](https://borgbackup.readthedocs.io/)
+
+additionally, milbi supports:
+
+- copy local directories with rsync
+- sync to backblaze b2 with [b2 cli](https://www.backblaze.com/b2/docs/quick_command_line.html)
 
 ## configure
 
-milbi reads config files.
+milbi reads yaml config files.
 
 this is an example config for milbi:
 
@@ -105,7 +73,39 @@ syncs:
     target: "/Volumes/backup"
 ```
 
-## todo
+## run it
+
+### installation
+
+milbi needs the used tools installed in the system.
+
+in addition to python milbi needs PyYaml to parse the configuration.
+
+```bash
+
+$ pip3 install -r requierements.txt
+
+```
+
+### prepare repos
+
+milbi does not handle repository creation of any kind. just make sure to create the repo for the tool you want to use before.
+
+#### restic
+
+initialize a restic repo and create a secret key if you want to have one.
+
+```bash
+
+restic init --repo <local path>
+
+```
+
+#### borbackup
+
+to be described
+
+## todos
 
 - add some tests to milbi source code
-- produce more help
+- provide more docu

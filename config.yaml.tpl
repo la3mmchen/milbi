@@ -3,6 +3,7 @@
 global:
   debug: True
   logfile: "~/.milbi/milbibackup.log"
+  hostalias: "my-notebook"
   restore:
       dir: "~/mnt"
 
@@ -36,8 +37,19 @@ restic:
 # have some syncs
 syncs:
   - name: "kdbx"
+    type: "rsync"
     source: "~/kdbx"
     target: "/Volumes/backup"
   - name: "backup"
+    type: "b2"
     source: "~/backup"
-    target: "/Volumes/backup"
+    target: "b2://some-bucket/path"
+
+
+b2:
+  binary: "/usr/local/bin/b2"
+  env:
+    - name: "B2_APPLICATION_KEY_ID"
+      value: "<..>"
+    - name: "B2_APPLICATION_KEY"
+      value: "<..>"
