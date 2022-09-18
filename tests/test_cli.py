@@ -24,6 +24,13 @@ def test_cli_config():
     assert run(cmd) == cmd['rc']
 
 
+def test_cli_explain():
+    cmd = prepare()
+    cmd['args'].extend(['config', '--explain'])
+    cmd['rc'] = 0
+    assert run(cmd) == cmd['rc']
+
+
 """
 helpers
 """

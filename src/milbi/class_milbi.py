@@ -8,10 +8,13 @@ import subprocess
 import calendar
 import time
 
+from .class_config import Config
+
 
 class Milbi():
     """
-    run backups from declarative config. intended to replace the random bash scripts I had on my disk.
+    helps to organize backups. with a declarative config. yaml!
+    intended to replace the random bash scripts I had on my disk.
 
     Parameters
     ----------
@@ -25,46 +28,32 @@ class Milbi():
     config = None
     debug = None
 
-    _content = None
-    _fileLocation = None
-    _logfileHandle = None
+    _logfile_handle = None
     _timestamp = None
-    _shellEnv = None
+    _shell_env = None
 
     def __init__(self, config="~/.milbi/config.yaml", debug=False):
         self.debug = debug
 
         self._timestamp = calendar.timegm(time.gmtime())
 
-        # handle relative paths for config
-        self._fileLocation = self._makePathAbsolute(config)
-
         # load content from config file
-        self._content = self._loadConfig(self._makePathAbsolute(self._fileLocation))
-
-        # handle relative paths
-        self._content['global']['logfile'] = self._makePathAbsolute(self._content['global']['logfile'])
-        self._content['global']['restore']['dir'] = self._makePathAbsolute(self._content['global']['restore']['dir'])
+        Config(config)
 
         # create a filehandle to log
-        print(f"logging to {self._content['global']['logfile']}")
-        self._logfileHandle = open(self._content['global']['logfile'], "a")
+        self._to_console(f"logging to {Config._CONFIG['global']['logfile']}")
+        self._logfile_handle = open(Config._CONFIG['global']['logfile'], "a")
 
         if self.debug:
-            self._toConsole("---")
-            self._toConsole("loaded config: ")
+            self._to_console("---")
+            self._to_console("loaded config: ")
             for item in vars(self).items():
-                self._toConsole("`-  %s: %s" % item)
-            self._toConsole("---")
-
-        if self._content is None:
-            self._toConsole("ERROR: no config file found.")
-            sys.exit(1)
-
-        self._shellEnv = os.environ.copy()
+                self._to_console("`-  %s: %s" % item)
+            self._to_console("---")
+        self._shell_env = os.environ.copy()
 
     def __del__(self):
-        self._logfileHandle.close()
+        self._logfile_handle.close()
 
     def sync(self):
         """
@@ -84,40 +73,42 @@ class Milbi():
         ----------
 
         """
-        if 'syncs' in self._content and len(self._content['syncs']) > 0:
-            for syncconfig in self._content['syncs']:
-                self._toConsole(f"doing sync of {syncconfig['name']} {syncconfig['source']} -> {syncconfig['target']}")
+        if 'syncs' in Config._CONFIG and len(Config._CONFIG['syncs']) > 0:
+            for syncconfig in Config._CONFIG['syncs']:
+                self._to_console(f"doing sync of {syncconfig['name']} {syncconfig['source']} -> {syncconfig['target']}")
                 # handle rsync
                 if syncconfig['type'] == 'rsync' and os.path.exists(syncconfig['source']) and os.path.exists(syncconfig['target']):
                     try:
-                        self._doRsync(syncconfig['source'], syncconfig['target'])
+                        self._do_rsync(syncconfig['source'], syncconfig['target'])
                     except Exception as e:
-                        self._toConsole(f"ERROR: ({e}).")
+                        self._to_console(f"ERROR: ({e}).")
                         sys.exit(1)
                 # handle b2
                 elif syncconfig['type'] == 'b2' and os.path.exists(syncconfig['source']):
                     try:
-                        self._doB2Sync(syncconfig['source'], syncconfig['target'])
+                        self._do_b2_sync(syncconfig['source'], syncconfig['target'])
                     except Exception as e:
-                        self._toConsole(f"ERROR: ({e}).")
+                        self._to_console(f"ERROR: ({e}).")
                         sys.exit(1)
                 else:
-                    self._toConsole(f"`- config not valid at the moment. skipping")
+                    self._to_console("`- config not valid at the moment. skipping")
                     pass
-                self._toConsole("")
+                self._to_console("")
 
-    def config(self):
+    def config(self, explain=False):
         """
         shows the current config that is loaded from the configured file.
 
         Parameters
         ----------
-
+        explain: bool
+          if true print an example configuration.
         """
-        if self._content is None:
-            self._toConsole("ERROR no valid config found")
+        if explain:
+            self._to_console("---")
+            self._to_console(f"{yaml.safe_dump(Config._ATTRIBUTES, width=1000)}")
         else:
-            self._toConsole(yaml.dump(self._content))
+            self._to_console(yaml.safe_dump(Config._CONFIG, indent=4))
 
     def backup(self, simulate=False):
         """
@@ -145,16 +136,16 @@ class Milbi():
         simulate: bool
             if true simulates a backup if this is possible
         """
-        if 'restic' in self._content and len(self._content['restic'].keys()) > 0 and self._content['restic']["enabled"]:
-            for item in self._content['restic']["repos"]:
-                self._toConsole(f"doing {os.path.basename(item['repo'])}")
+        if 'restic' in Config._CONFIG and len(Config._CONFIG['restic'].keys()) > 0 and Config._CONFIG['restic']["enabled"]:
+            for item in Config._CONFIG['restic']["repos"]:
+                self._to_console(f"doing {os.path.basename(item['repo'])}")
                 cmd = [
                     "backup",
                     "--verbose",
                     "--compression",
                     "auto",
                     "--host",
-                    self._content['global']['hostalias'],
+                    Config._CONFIG['global']['hostalias'],
                     "--repo",
                     item['repo'],
                     "--exclude",
@@ -166,14 +157,14 @@ class Milbi():
                     cmd.append("--dry-run")
 
                 try:
-                    self._cmdRunRestic(cmd=cmd, passphrase=item['passphrase'])
+                    self._cmd_run_restic(cmd=cmd, passphrase=item['passphrase'])
                 except Exception as e:
-                    self._toConsole(f"ERROR: ({e}).")
+                    self._to_console(f"ERROR: ({e}).")
                     sys.exit(1)
 
-        if 'borgbackup' in self._content and len(self._content['borgbackup'].keys()) > 0 and self._content['borgbackup']["enabled"]:
-            for item in self._content['borgbackup']["repos"]:
-                self._toConsole(f"doing {os.path.basename(item['repo'])}")
+        if 'borgbackup' in Config._CONFIG and len(Config._CONFIG['borgbackup'].keys()) > 0 and Config._CONFIG['borgbackup']["enabled"]:
+            for item in Config._CONFIG['borgbackup']["repos"]:
+                self._to_console(f"doing {os.path.basename(item['repo'])}")
                 cmd = [
                     "create",
                     "--compression",
@@ -189,9 +180,9 @@ class Milbi():
                 cmd.extend(item['targets'])
 
                 try:
-                    self._cmdRunBorg(cmd=cmd, passphrase=item['passphrase'])
+                    self._cmd_run_borg(cmd=cmd, passphrase=item['passphrase'])
                 except Exception as e:
-                    self._toConsole(f"ERROR: ({e}).")
+                    self._to_console(f"ERROR: ({e}).")
                     sys.exit(1)
 
     def check(self):
@@ -212,9 +203,9 @@ class Milbi():
         ----------
 
         """
-        if 'restic' in self._content and len(self._content['restic'].keys()) > 0 and self._content['restic']["enabled"]:
-            for item in self._content['restic']["repos"]:
-                self._toConsole(f"doing {os.path.basename(item['repo'])}")
+        if 'restic' in Config._CONFIG and len(Config._CONFIG['restic'].keys()) > 0 and Config._CONFIG['restic']["enabled"]:
+            for item in Config._CONFIG['restic']["repos"]:
+                self._to_console(f"doing {os.path.basename(item['repo'])}")
                 cmd = [
                     "check",
                     "--repo",
@@ -222,62 +213,62 @@ class Milbi():
                 ]
 
                 try:
-                    self._cmdRunRestic(cmd=cmd, passphrase=item['passphrase'])
+                    self._cmd_run_restic(cmd=cmd, passphrase=item['passphrase'])
                 except Exception as e:
-                    self._toConsole(f"ERROR: ({e}).")
+                    self._to_console(f"ERROR: ({e}).")
                     sys.exit(1)
 
-        if 'borgbackup' in self._content and len(self._content['borgbackup'].keys()) > 0 and self._content['borgbackup']["enabled"]:
-            for item in self._content['borgbackup']["repos"]:
-                self._toConsole(f"doing {os.path.basename(item['repo'])}")
+        if 'borgbackup' in Config._CONFIG and len(Config._CONFIG['borgbackup'].keys()) > 0 and Config._CONFIG['borgbackup']["enabled"]:
+            for item in Config._CONFIG['borgbackup']["repos"]:
+                self._to_console(f"doing {os.path.basename(item['repo'])}")
                 cmd = [
                     "check",
                     "--verify-data",
                     "--last",
                     "1",
-                    self._content['borgbackup']['repo']
+                    Config._CONFIG['borgbackup']['repo']
                 ]
 
                 try:
-                    self._cmdRunBorg(cmd=cmd, passphrase=item['passphrase'])
+                    self._cmd_run_borg(cmd=cmd, passphrase=item['passphrase'])
                 except Exception as e:
-                    self._toConsole(f"ERROR: ({e}).")
+                    self._to_console(f"ERROR: ({e}).")
                     sys.exit(1)
 
                 # test if last backup can be extracted
-                self._logfileHandle.write(f"{time.ctime(self._timestamp)} try to extract repo \n")
+                self._logfile_handle.write(f"{time.ctime(self._timestamp)} try to extract repo \n")
 
                 cmd = [
                     "list",
                     "--short",
                     "--last",
                     "1",
-                    f"{self._content['borgbackup']['repo']}"
+                    f"{Config._CONFIG['borgbackup']['repo']}"
                 ]
 
                 try:
-                    _, stdout, _ = self._cmdRunBorg(cmd=cmd, passphrase=item['passphrase'])
+                    _, stdout, _ = self._cmd_run_borg(cmd=cmd, passphrase=item['passphrase'])
                 except Exception as e:
-                    self._toConsole(f"ERROR: ({e}).")
+                    self._to_console(f"ERROR: ({e}).")
                     sys.exit(1)
 
                 lastArchive = stdout.rstrip()
 
-                self._logfileHandle.write(f"{time.ctime(self._timestamp)} using archive {lastArchive}. \n")
+                self._logfile_handle.write(f"{time.ctime(self._timestamp)} using archive {lastArchive}. \n")
 
                 cmd = [
                     "extract",
                     "--dry-run",
                     "--list",
                     "--exclude",
-                    self._content['borgbackup']['excludes'],
-                    f"{self._content['borgbackup']['repo']}::{lastArchive}"
+                    Config._CONFIG['borgbackup']['excludes'],
+                    f"{Config._CONFIG['borgbackup']['repo']}::{lastArchive}"
                 ]
 
                 try:
-                    self._cmdRunBorg(cmd=cmd, passphrase=item['passphrase'])
+                    self._cmd_run_borg(cmd=cmd, passphrase=item['passphrase'])
                 except Exception as e:
-                    self._toConsole(f"ERROR: ({e}).")
+                    self._to_console(f"ERROR: ({e}).")
                     sys.exit(1)
 
     def info(self):
@@ -288,9 +279,9 @@ class Milbi():
         ----------
 
         """
-        if 'restic' in self._content and len(self._content['restic'].keys()) > 0 and self._content['restic']["enabled"]:
-            for item in self._content['restic']['repos']:
-                self._toConsole(f"doing {os.path.basename(item['repo'])}")
+        if 'restic' in Config._CONFIG and len(Config._CONFIG['restic'].keys()) > 0 and Config._CONFIG['restic']["enabled"]:
+            for item in Config._CONFIG['restic']['repos']:
+                self._to_console(f"doing {os.path.basename(item['repo'])}")
                 cmd = [
                     "snapshots",
                     "--repo",
@@ -298,22 +289,22 @@ class Milbi():
                 ]
 
                 try:
-                    self._cmdRunRestic(cmd=cmd, passphrase=item['passphrase'])
+                    self._cmd_run_restic(cmd=cmd, passphrase=item['passphrase'])
                 except Exception as e:
-                    self._toConsole(f"ERROR: ({e}).")
+                    self._to_console(f"ERROR: ({e}).")
                     sys.exit(1)
 
-        if 'borgbackup' in self._content and len(self._content['borgbackup'].keys()) > 0 and self._content['borgbackup']["enabled"]:
-            for item in self._content['borgbackup']["repos"]:
-                self._toConsole(f"doing {os.path.basename(item['repo'])}")
+        if 'borgbackup' in Config._CONFIG and len(Config._CONFIG['borgbackup'].keys()) > 0 and Config._CONFIG['borgbackup']["enabled"]:
+            for item in Config._CONFIG['borgbackup']["repos"]:
+                self._to_console(f"doing {os.path.basename(item['repo'])}")
                 cmd = [
                     "info",
                     item['repo']
                 ]
                 try:
-                    self._cmdRunBorg(cmd=cmd, passphrase=item['passphrase'])
+                    self._cmd_run_borg(cmd=cmd, passphrase=item['passphrase'])
                 except Exception as e:
-                    self._toConsole(f"ERROR: ({e}).")
+                    self._to_console(f"ERROR: ({e}).")
                     sys.exit(1)
 
                 cmd = [
@@ -321,9 +312,9 @@ class Milbi():
                     item['repo']
                 ]
                 try:
-                    self._cmdRunBorg(cmd=cmd, passphrase=item['passphrase'])
+                    self._cmd_run_borg(cmd=cmd, passphrase=item['passphrase'])
                 except Exception as e:
-                    self._toConsole(f"ERROR: ({e}).")
+                    self._to_console(f"ERROR: ({e}).")
                     sys.exit(1)
 
     def prune(self):
@@ -334,9 +325,9 @@ class Milbi():
         ----------
 
         """
-        if 'restic' in self._content and len(self._content['restic'].keys()) > 0 and self._content['restic']["enabled"]:
-            for item in self._content['restic']['repos']:
-                self._toConsole(f"doing {os.path.basename(item['repo'])}")
+        if 'restic' in Config._CONFIG and len(Config._CONFIG['restic'].keys()) > 0 and Config._CONFIG['restic']["enabled"]:
+            for item in Config._CONFIG['restic']['repos']:
+                self._to_console(f"doing {os.path.basename(item['repo'])}")
                 cmd = [
                     "forget",
                     f"--keep-daily={item['keep']}",
@@ -344,26 +335,24 @@ class Milbi():
                     item['repo']
                 ]
 
-                print(f"{cmd}")
-                print(f"{shlex.join(cmd)}")
                 try:
-                    self._cmdRunRestic(cmd=cmd, passphrase=item['passphrase'])
+                    self._cmd_run_restic(cmd=cmd, passphrase=item['passphrase'])
                 except Exception as e:
-                    self._toConsole(f"ERROR: ({e}).")
+                    self._to_console(f"ERROR: ({e}).")
                     sys.exit(1)
 
-        if 'borgbackup' in self._content and len(self._content['borgbackup'].keys()) > 0 and self._content['borgbackup']["enabled"]:
+        if 'borgbackup' in Config._CONFIG and len(Config._CONFIG['borgbackup'].keys()) > 0 and Config._CONFIG['borgbackup']["enabled"]:
             cmd = [
                 "prune",
                 "--verbose",
                 "--list",
-                f"--keep-daily={self._content['borgbackup']['keep']}",
-                self._content['borgbackup']['repo']
+                f"--keep-daily={Config._CONFIG['borgbackup']['keep']}",
+                Config._CONFIG['borgbackup']['repo']
             ]
             try:
-                self._cmdRunBorg(cmd=cmd, passphrase=item['passphrase'])
+                self._cmd_run_borg(cmd=cmd, passphrase=item['passphrase'])
             except Exception as e:
-                self._toConsole(f"ERROR: ({e}).")
+                self._to_console(f"ERROR: ({e}).")
                 sys.exit(1)
 
     def get(self, resticfilter=None, repo=None):
@@ -378,24 +367,24 @@ class Milbi():
         repo: string
             select the repository to extract via its name and not via an interactive selector.
         """
-        if self._content['global']['restore']['dir']:
-            if not os.path.exists(os.path.dirname(self._content['global']['restore']['dir'])):
-                self._toConsole(f"ERROR: target directory {self._content['global']['restore']['dir']} does not exists.")
+        if Config._CONFIG['global']['restore']['dir']:
+            if not os.path.exists(os.path.dirname(Config._CONFIG['global']['restore']['dir'])):
+                self._to_console(f"ERROR: target directory {Config._CONFIG['global']['restore']['dir']} does not exists.")
 
-        if 'restic' in self._content and len(self._content['restic'].keys()) > 0 and self._content['restic']["enabled"]:
+        if 'restic' in Config._CONFIG and len(Config._CONFIG['restic'].keys()) > 0 and Config._CONFIG['restic']["enabled"]:
             repoToGet = None
             if repo is None:
-                repoToGet = self._content['restic']['repos'][int(self._askRepoToRestore(self._content['restic']['repos']))]
+                repoToGet = Config._CONFIG['restic']['repos'][int(self._ask_repo_to_restore(Config._CONFIG['restic']['repos']))]
             else:
-                for item in self._content['restic']['repos']:
+                for item in Config._CONFIG['restic']['repos']:
                     if repo.lower() in item['repo']:
                         repoToGet = item
 
             if repoToGet is None:
-                self._toConsole("ERROR: Repo to extract not found.")
+                self._to_console("ERROR: Repo to extract not found.")
                 sys.exit(1)
 
-            self._toConsole(f"doing extraction of {repoToGet['repo']}")
+            self._to_console(f"doing extraction of {repoToGet['repo']}")
 
             cmd = [
                 "restore",
@@ -403,35 +392,35 @@ class Milbi():
                 "--repo",
                 repoToGet['repo'],
                 "--target",
-                f"{self._content['global']['restore']['dir']}/restic"
+                f"{Config._CONFIG['global']['restore']['dir']}/restic"
             ]
 
             if resticfilter is not None:
-                self._toConsole("HINT: filters are not quite fully integrated.")
+                self._to_console("HINT: filters are not quite fully integrated.")
                 cmd.extend([
                     '--path',
                     resticfilter
                 ])
 
             try:
-                self._cmdRunRestic(cmd=cmd, passphrase=repoToGet['passphrase'])
+                self._cmd_run_restic(cmd=cmd, passphrase=repoToGet['passphrase'])
             except Exception as e:
-                self._toConsole(f"ERROR: ({e}).")
+                self._to_console(f"ERROR: ({e}).")
                 sys.exit(1)
 
-        if 'borgbackup' in self._content and len(self._content['borgbackup'].keys()) > 0 and self._content['borgbackup']["enabled"]:
+        if 'borgbackup' in Config._CONFIG and len(Config._CONFIG['borgbackup'].keys()) > 0 and Config._CONFIG['borgbackup']["enabled"]:
             cmd = [
                 "extract",
-                self._content['borgbackup']['repo'],
-                f"{self._content['global']['restore']['dir']}/borgbackup"
+                Config._CONFIG['borgbackup']['repo'],
+                f"{Config._CONFIG['global']['restore']['dir']}/borgbackup"
             ]
             try:
-                self._cmdRunBorg(cmd=cmd, passphrase=item['passphrase'])
+                self._cmd_run_borg(cmd=cmd, passphrase=item['passphrase'])
             except Exception as e:
-                self._toConsole(f"ERROR: ({e}).")
+                self._to_console(f"ERROR: ({e}).")
                 sys.exit(1)
 
-    def _cmdRunRestic(self, cmd, passphrase):
+    def _cmd_run_restic(self, cmd, passphrase):
         """
         generic function to run restic commands.
 
@@ -449,22 +438,22 @@ class Milbi():
         stderr: list
             error output of command
         """
-        self._shellEnv['RESTIC_PASSWORD'] = passphrase
+        self._shell_env['RESTIC_PASSWORD'] = passphrase
 
-        command = [self._content['restic']['bin']]
+        command = [Config._CONFIG['restic']['bin']]
         command.extend(cmd)
 
         if self.debug:
-            print(f"{shlex.join(command)}")
+            self._to_console(f"{shlex.join(command)}")
 
-        self._logfileHandle.write(f"{time.ctime(self._timestamp)} command: {shlex.join(command)} \n")
+        self._logfile_handle.write(f"{time.ctime(self._timestamp)} command: {shlex.join(command)} \n")
 
         try:
-            result = subprocess.run(command, capture_output=True, env=self._shellEnv, encoding='utf-8')
-            self._toConsole(result.stdout)
+            result = subprocess.run(command, capture_output=True, env=self._shell_env, encoding='utf-8')
+            self._to_console(result.stdout)
 
             if self.debug:
-                self._toConsole(result.stderr)
+                self._to_console(result.stderr)
 
             if result.returncode != 0:
                 raise Exception(f"{command} not succesful. {result.stderr}")
@@ -472,12 +461,12 @@ class Milbi():
             raise Exception(e)
 
         # handle log output
-        self._logfileHandle.write(f"{time.ctime(self._timestamp)} stdout: {result.stdout} \n")
-        self._logfileHandle.write(f"{time.ctime(self._timestamp)} stderr: {result.stderr} \n")
+        self._logfile_handle.write(f"{time.ctime(self._timestamp)} stdout: {result.stdout} \n")
+        self._logfile_handle.write(f"{time.ctime(self._timestamp)} stderr: {result.stderr} \n")
 
         return (result.returncode, result.stdout, result.stderr)
 
-    def _cmdRunBorg(self, cmd):
+    def _cmd_run_borg(self, cmd, passphrase):
         """
         generic function to run borg commands.
 
@@ -495,22 +484,22 @@ class Milbi():
         stderr: list
             error output of command
         """
-        self._shellEnv['BORG_PASSPHRASE'] = passphrase
+        self._shell_env['BORG_PASSPHRASE'] = passphrase
 
-        command = [self._content['borgbackup']['bin']]
+        command = [Config._CONFIG['borgbackup']['bin']]
         command.extend(cmd)
 
         if self.debug:
-            print(f"{shlex.join(command)}")
+            self._to_console(f"{shlex.join(command)}")
 
-        self._logfileHandle.write(f"{time.ctime(self._timestamp)} command: {shlex.join(command)} \n")
+        self._logfile_handle.write(f"{time.ctime(self._timestamp)} command: {shlex.join(command)} \n")
 
         try:
-            result = subprocess.run(command, capture_output=True, env=self._shellEnv, encoding='utf-8')
-            self._toConsole(result.stdout)
+            result = subprocess.run(command, capture_output=True, env=self._shell_env, encoding='utf-8')
+            self._to_console(result.stdout)
 
             if self.debug:
-                self._toConsole(result.stderr)
+                self._to_console(result.stderr)
 
             if result.returncode != 0:
                 raise Exception(f"{command} not succesful. {result.stderr}")
@@ -518,12 +507,12 @@ class Milbi():
             raise Exception(e)
 
         # handle log output
-        self._logfileHandle.write(f"{time.ctime(self._timestamp)} stdout: {result.stdout} \n")
-        self._logfileHandle.write(f"{time.ctime(self._timestamp)} stderr: {result.stderr} \n")
+        self._logfile_handle.write(f"{time.ctime(self._timestamp)} stdout: {result.stdout} \n")
+        self._logfile_handle.write(f"{time.ctime(self._timestamp)} stderr: {result.stderr} \n")
 
         return (result.returncode, result.stdout, result.stderr)
 
-    def _doRsync(self, source, target):
+    def _do_rsync(self, source, target):
         """
         generic function to execute rsync
 
@@ -558,16 +547,16 @@ class Milbi():
         ]
 
         if self.debug:
-            print(f"{shlex.join(command)}")
+            self._to_console(f"{shlex.join(command)}")
 
-        self._logfileHandle.write(f"{time.ctime(self._timestamp)} rsync command: {shlex.join(command)} \n")
+        self._logfile_handle.write(f"{time.ctime(self._timestamp)} rsync command: {shlex.join(command)} \n")
 
         try:
-            result = subprocess.run(command, capture_output=True, env=self._shellEnv, encoding='utf-8')
-            self._toConsole(result.stdout)
+            result = subprocess.run(command, capture_output=True, env=self._shell_env, encoding='utf-8')
+            self._to_console(result.stdout)
 
             if self.debug:
-                self._toConsole(result.stderr)
+                self._to_console(result.stderr)
 
             if result.returncode != 0:
                 raise Exception(f"{command} not succesful. {result.stderr}")
@@ -575,10 +564,10 @@ class Milbi():
             raise Exception(e)
 
         # handle log output
-        self._logfileHandle.write(f"{time.ctime(self._timestamp)} stdout: {result.stdout} \n")
-        self._logfileHandle.write(f"{time.ctime(self._timestamp)} stderr: {result.stderr} \n")
+        self._logfile_handle.write(f"{time.ctime(self._timestamp)} stdout: {result.stdout} \n")
+        self._logfile_handle.write(f"{time.ctime(self._timestamp)} stderr: {result.stderr} \n")
 
-    def _doB2Sync(self, source, target):
+    def _do_b2_sync(self, source, target):
         """
         generic function to execute b2 sync
 
@@ -601,7 +590,7 @@ class Milbi():
         """
 
         command = [
-            self._content['b2']['binary'],
+            Config._CONFIG['b2']['binary'],
             'sync',
             '--keepDays',
             '7',
@@ -609,20 +598,20 @@ class Milbi():
             target
         ]
 
-        for item in self._content['b2']['env']:
-            self._shellEnv[item['name']] = item['value']
+        for item in Config._CONFIG['b2']['env']:
+            self._shell_env[item['name']] = item['value']
 
         if self.debug:
-            print(f"{shlex.join(command)}")
+            self._to_console(f"{shlex.join(command)}")
 
-        self._logfileHandle.write(f"{time.ctime(self._timestamp)} b2 command: {shlex.join(command)} \n")
+        self._logfile_handle.write(f"{time.ctime(self._timestamp)} b2 command: {shlex.join(command)} \n")
 
         try:
-            result = subprocess.run(command, capture_output=True, env=self._shellEnv, encoding='utf-8')
-            self._toConsole(result.stdout)
+            result = subprocess.run(command, capture_output=True, env=self._shell_env, encoding='utf-8')
+            self._to_console(result.stdout)
 
             if self.debug:
-                self._toConsole(result.stderr)
+                self._to_console(result.stderr)
 
             if result.returncode != 0:
                 raise Exception(f"{command} not succesful. {result.stderr}")
@@ -630,32 +619,19 @@ class Milbi():
             raise Exception(e)
 
         # handle log output
-        self._logfileHandle.write(f"{time.ctime(self._timestamp)} stdout: {result.stdout} \n")
-        self._logfileHandle.write(f"{time.ctime(self._timestamp)} stderr: {result.stderr} \n")
+        self._logfile_handle.write(f"{time.ctime(self._timestamp)} stdout: {result.stdout} \n")
+        self._logfile_handle.write(f"{time.ctime(self._timestamp)} stderr: {result.stderr} \n")
 
         return (result.returncode, result.stdout, result.stderr)
 
-    def _makePathAbsolute(self, inPath):
-        """
-        function to make sure a path is an absolute path
-        """
-
-        if '~' in inPath:
-            inPath = os.path.expanduser(inPath)
-        if not os.path.isabs(inPath):
-            inPath = os.path.join(os.getcwd(), inPath)
-        absPath = inPath
-
-        return absPath
-
-    def _toConsole(self, message):
+    def _to_console(self, message):
         """
         common function to print to console.
         """
         print(f"{message}")
         return True
 
-    def _loadConfig(self, fle):
+    def _load_config(self, fle):
         """
         load the config from file
         """
@@ -665,24 +641,24 @@ class Milbi():
                 ymlcnt = yaml.safe_load(file)
                 file.close()
         except Exception as e:
-            self._toConsole(f"Error while parsing connfig ({fle}): {e}")
+            self._to_console(f"Error while parsing connfig ({fle}): {e}")
         return ymlcnt
 
-    def _askRepoToRestore(self, lst):
+    def _ask_repo_to_restore(self, lst):
         """
         get a list of repos and print a user facing selector.
         """
         selectedNumber = None
-        self._toConsole("Please select a repository: ")
+        self._to_console("Please select a repository: ")
 
         while True:
             for i, v in enumerate(lst):
-                print(f" [{i}] - {v['repo']}")
+                self._to_console(f" [{i}] - {v['repo']}")
             answer = input(f"--> select a repo [0 to {len(lst)-1}] from the list above or [c]ancel ".lower())
 
             if answer == "c":
                 sys.exit(1)
-            if int(answer) >= 0 and int(answer) <= len(lst)-1:
+            if int(answer) >= 0 and int(answer) <= len(lst) - 1:
                 selectedNumber = answer
                 break
 

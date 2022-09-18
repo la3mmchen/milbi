@@ -3,7 +3,6 @@
 global:
   debug: True
   logfile: "~/.milbi/milbibackup.log"
-  hostalias: "my-notebook"
   restore:
       dir: "~/mnt"
 
@@ -11,28 +10,28 @@ global:
 borgbackup:
   enabled: False
   bin: "/usr/local/bin/borg"
-  passphrase: "abcdefgh"
-  keep: 7
-  repo: "~/backups/"
-  excludes: "*github.com*"
-  targets:
-    - ~/repos
-    - ~/Documents
+  repos:
+    - passphrase: "abcdefgh"
+      keep: 7
+      repo: "~/backups/"
+      excludes: "*github.com*"
+      targets:
+        - ~/repos
+        - ~/Documents
 
 # configure restic
 restic:
   enabled: True
   bin: "/usr/local/bin/restic"
-  passphrase: "abcdefgh"
-  repo: "~/backups-restic/"
-  excludes: "*github.com*"
-  keep: 7
-  targets:
-    - ~/repos
-    - ~/Documents
-    - ~/.ssh
-    - ~/.zshrc
-    - ~/.kube
+  repos:
+    - passphrase: "abcdefgh"
+      repo: "~/backups-restic/"
+      excludes: "*github.com*"
+      keep: 7
+      targets:
+        - ~/repos
+        - ~/Documents
+        - ~/.ssh
 
 # have some syncs
 syncs:
@@ -40,11 +39,10 @@ syncs:
     type: "rsync"
     source: "~/kdbx"
     target: "/Volumes/backup"
-  - name: "backup"
+  - name: "notebookbackup"
     type: "b2"
-    source: "~/backup"
-    target: "b2://some-bucket/path"
-
+    source: "~/backups-restic/"
+    target: "b2://random-bucket/backup"
 
 b2:
   binary: "/usr/local/bin/b2"
