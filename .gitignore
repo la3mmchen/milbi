@@ -38,6 +38,9 @@ junit*.xml
 coverage.xml
 .pytest_cache/
 pytest-report.xml
+tests/files/resticrepo-restore/*
+tests/files/resticrepo-copy/*
+
 
 # Build and docs folder/files
 build/*

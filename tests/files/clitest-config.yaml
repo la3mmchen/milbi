@@ -1,0 +1,25 @@
+---
+
+global:
+  debug: True
+  logfile: "./tests/files/tests.log"
+  hostalias: "test0r"
+  restore:
+      dir: "./tests/files/resticrepo-restore"
+
+restic:
+  enabled: True
+  bin: "/usr/local/bin/restic"
+  repos:
+    - passphrase: "iamarandompasswort"
+      repo: "./tests/files/resticrepo"
+      excludes: "*resticrep*"
+      keep: 1
+      targets:
+        - ./tests/files/randomfiles
+
+syncs:
+  - name: "randomsync"
+    type: "rsync"
+    source: "./tests/files/resticrepo"
+    target: "./tests/files/resticrepo-copy"

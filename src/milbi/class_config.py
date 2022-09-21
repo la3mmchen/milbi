@@ -17,10 +17,10 @@ class Config(object):
 
     _ATTRIBUTES = {
         'global': {
-            'logfile': 'Provide a path in your filesystem for the application to log.',
+            'logfile': '<String>; Provide a path in your filesystem for the application to log.',
         },
         'borgbackup': {
-            'enabled': 'A trigger to activate the backup with borgbackup. (Options: True / False).',
+            'enabled': 'A trigger to activate/deactivate the backup for borgbackup. (Options: True / False).',
             'bin': 'Path to borg binary to use.',
             'repos': [
                 {
@@ -58,7 +58,20 @@ class Config(object):
                 'source': 'A local path to a directory that you want to sync.',
                 'target': 'The destination of the sync; might be a local path or maybe a b2 bucket.'
             }
-        ]
+        ],
+        'b2': {
+            'binary': 'Path to b2 binary to use.',
+            'env': [
+                {
+                    'name': 'B2_APPLICATION_KEY_ID',
+                    'value': '<application key_id from backblaze>'
+                },
+                {
+                    'name': 'B2_APPLICATION_KEY',
+                    'value': '<b2 app key>'
+                }
+            ]
+        }
     }
 
     def __init__(self, config_file=None):

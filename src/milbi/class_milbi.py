@@ -1,12 +1,16 @@
 #!/usr/bin/env python3
 
+from importlib.metadata import files
 import os
 import yaml
 import sys
 import shlex
+import random
 import subprocess
 import calendar
 import time
+from glob import glob
+from hashlib import sha512
 
 from .class_config import Config
 
@@ -66,6 +70,7 @@ class Milbi():
 
             syncs:
               - name: "sync-name"
+                type: "rsync"
                 source: "~/local-folder"
                 target: "~/local-target"
 
@@ -420,6 +425,58 @@ class Milbi():
                 self._to_console(f"ERROR: ({e}).")
                 sys.exit(1)
 
+    def fuzz(self, count=10, verify=False):
+        """
+        fuzz around in your backups to check if random files are in the backup
+
+        Parameters
+        ----------
+        count: int
+            define the number of files to check
+
+        verify: bool
+            if using restic: verify the restore file. this is time consuming.
+
+        """
+        if 'restic' in Config._CONFIG and len(Config._CONFIG['restic'].keys()) > 0 and Config._CONFIG['restic']["enabled"]:
+            self._to_console("fuzzing around in configured backups..")
+
+            files_per_repo_target = {}
+            try:
+                while count > 0:
+                    # get a random repo
+                    randomrepo = random.choice(Config._CONFIG['restic']['repos'])
+                    # get a random backup target from the random repo
+                    randomdir = random.choice(randomrepo['targets'])
+                    randomdir_hash = sha512(randomdir.encode('utf-8')).hexdigest()
+
+                    if randomdir_hash not in files_per_repo_target:
+                        self._to_console(f"preseeding files for {randomdir}. this might take a while..")
+                        files_per_repo_target[randomdir_hash] = self._preseed_filelist(randomdir)
+
+                    # get a random file from the random backup target from the random repo
+                    randomfile = os.path.basename(random.choice(files_per_repo_target[randomdir_hash]))
+
+                    if self.debug:
+                        self._to_console(f"..in repo {randomrepo['repo']}")
+                        self._to_console(f"..at dir {randomdir}")
+
+                    self._to_console(f"...by checking for file {randomfile} [repo [{randomrepo['repo']}] / target [{randomdir}]]")
+
+                    # restore the random file from the and so on
+                    try:
+                        self._restic_get_one_file(filename=randomfile, out_of=randomrepo, verify=verify)
+                    except Exception as e:
+                        self._to_console(f"ERROR: ({e}).")
+                        sys.exit(1)
+
+
+                    count = count -1
+            except Exception as e:
+                self._to_console(f"ERROR: ({e}).")
+                sys.exit(1)
+
+
     def _cmd_run_restic(self, cmd, passphrase):
         """
         generic function to run restic commands.
@@ -663,3 +720,33 @@ class Milbi():
                 break
 
         return selectedNumber
+
+    def _restic_get_one_file(self, filename=None, out_of=None, verify=None):
+        if filename is not None and out_of is not None:
+            cmd = [
+                  "restore",
+                  "latest",
+                  "--repo",
+                  out_of['repo'],
+                  "--target",
+                  f"{Config._CONFIG['global']['restore']['dir']}/restic",
+                  '--include',
+                  filename
+              ]
+
+            if verify:
+                cmd.append('--verify')
+            try:
+                self._cmd_run_restic(cmd=cmd, passphrase=out_of['passphrase'])
+            except Exception as e:
+                self._to_console(f"ERROR: ({e}).")
+                sys.exit(1)
+
+
+    def _preseed_filelist(self, randomdir=None):
+        if randomdir is not None and os.path.isdir(randomdir):
+            return [y for x in os.walk(randomdir) for y in glob(os.path.join(x[0], '*'))]
+        elif os.path.isfile(random):
+            return [randomdir]
+
+        return randomdir

@@ -1,5 +1,5 @@
 .DEFAULT_GOAL := help
-PYTEST_FLAGS := -x -n auto -v --pyargs .
+PYTEST_FLAGS := -x -n 1 -v --pyargs .
 PYTEST_FILTER := -k test_cli
 COVERAGE_FLAGS := --junitxml=pytest-report.xml
 
