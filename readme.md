@@ -26,22 +26,56 @@ processed 82805 files, 6.863 GiB in 0:18
 snapshot cece5d02 saved
 ```
 
+as i work mostly with restic at the moment, milbis best user experience is with restic. but it should work with borg as well - in theory.
+
 ## features
+
+### backup
 
 at the moment, mibli can be configured to do backups with the following technologies:
 
 - backups with [restic](https://restic.readthedocs.io/)
 - backups with [borg](https://borgbackup.readthedocs.io/)
 
+### synchronization
+
 additionally, milbi can:
 
 - copy directories with rsync
 - sync to backblaze b2 with [b2 cli](https://www.backblaze.com/b2/docs/quick_command_line.html)
 
+### verification
+
+```bash
+$ ./milbi.py check
+doing my-repo
+using temporary cache in /var/folders/vz/ct7cy2591p58dkbxflsgh18dgxl8xl/T/restic-check-cache-4190130004
+create exclusive lock for repository
+load indexes
+check all packs
+check snapshots, trees and blobs
+[0:10] 100.00%  1 / 1 snapshots
+
+no errors were found
+```
+
+in addition to running checks on the repositories, milbi can randomly fuzz through the files that should be backuped and search them in the backup repository.
+
+```bash
+/milbi.py --config ./tests/files/clitest-config.yaml fuzz --count 1 --verify
+
+fuzzing around in configured backups..
+preseeding files for ./tests/files/randomfiles. this might take a while..
+...by checking for file file2.txt [repo [./tests/files/resticrepo] / target [./tests/files/randomfiles]]
+restoring <Snapshot ac2c866a of [~/milbi/tests/files/randomfiles] at 2022-09-22 17:04:46.711727 +0200 CEST by user@test0r> to ~/milbi/./tests/files/resticrepo-restore/restic
+verifying files in ~/milbi/./tests/files/resticrepo-restore/restic
+finished verifying 1 files in ~/milbi/./tests/files/resticrepo-restore/restic (took 4ms)
+
+```
+
 ## configuration
 
 milbi understands yaml. run `milbi config --explain` to get a config explanation.
-
 
 ```yaml
 ---
