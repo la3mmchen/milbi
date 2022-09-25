@@ -1,6 +1,5 @@
 .DEFAULT_GOAL := help
 PYTEST_FLAGS := -x -n 1 -v --pyargs .
-PYTEST_FILTER := -k test_cli
 COVERAGE_FLAGS := --junitxml=pytest-report.xml
 
 
@@ -11,10 +10,21 @@ lint:
 	flake8 src/*/*.py
 
 .PHONY: tests
-tests: ## test
-tests:
+tests: ## execute all test cases
+tests: unittests clitests
+
+.PHONY: unittests
+unittests: ## execute unittests
+unittests:
 	@echo "running test limited to: ${PYTEST_FILTER}"
-	@coverage run --source=src -m pytest ${PYTEST_FLAGS} ${PYTEST_FILTER} ${COVERAGE_FLAGS}
+	@coverage run --source=src -m pytest ${PYTEST_FLAGS} -k test_unit ${COVERAGE_FLAGS}
+	@coverage report -m
+
+.PHONY: clitests
+clitests: ## execute clitests
+clitests:
+	@echo "running test limited to: ${PYTEST_FILTER}"
+	@coverage run --source=src -m pytest ${PYTEST_FLAGS} -k test_cli ${COVERAGE_FLAGS}
 	@coverage report -m
 
 .PHONY: help
