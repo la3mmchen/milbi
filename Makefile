@@ -1,23 +1,30 @@
 .DEFAULT_GOAL := help
 PYTEST_FLAGS := -x -n 1 -v --pyargs .
 COVERAGE_FLAGS := --junitxml=pytest-report.xml
+PYTEST_INSTALLS := pytest==7.1.3 pytest-cov==3.0.0 pytest-forked==1.4.0 pytest-xdist==2.5.0
 
 
 .PHONY: lint
 lint: ## lint with flake8
 lint:
-	flake8 milbi.py
-	flake8 src/*/*.py
+	pip3 install flake8
+	flake8 --config .flake8 milbi.py
+	flake8 --config .flake8 src/*/*.py
 
 .PHONY: tests
 tests: ## execute all test cases
-tests: unittests clitests
+tests: testprepare unittests clitests
+
+.PHONE: testprepare
+testprepare: 
+testprepare:
+	@pip3 install ${PYTEST_INSTALLS}
 
 .PHONY: unittests
 unittests: ## execute unittests
 unittests:
 	@echo "running test limited to: ${PYTEST_FILTER}"
-	@coverage run --source=src -m pytest ${PYTEST_FLAGS} -k test_unit ${COVERAGE_FLAGS}
+	coverage run --source=src -m pytest ${PYTEST_FLAGS} -k test_unit ${COVERAGE_FLAGS}
 	@coverage report -m
 
 .PHONY: clitests
