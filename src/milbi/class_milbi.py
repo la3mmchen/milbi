@@ -1,6 +1,5 @@
 #!/usr/bin/env python3
 
-from importlib.metadata import files
 import os
 import yaml
 import sys
@@ -469,13 +468,10 @@ class Milbi():
                     except Exception as e:
                         self._to_console(f"ERROR: ({e}).")
                         sys.exit(1)
-
-
-                    count = count -1
+                    count = count - 1
             except Exception as e:
                 self._to_console(f"ERROR: ({e}).")
                 sys.exit(1)
-
 
     def _cmd_run_restic(self, cmd, passphrase):
         """
@@ -724,15 +720,15 @@ class Milbi():
     def _restic_get_one_file(self, filename=None, out_of=None, verify=None):
         if filename is not None and out_of is not None:
             cmd = [
-                  "restore",
-                  "latest",
-                  "--repo",
-                  out_of['repo'],
-                  "--target",
-                  f"{Config._CONFIG['global']['restore']['dir']}/restic",
-                  '--include',
-                  filename
-              ]
+                "restore",
+                "latest",
+                "--repo",
+                out_of['repo'],
+                "--target",
+                f"{Config._CONFIG['global']['restore']['dir']}/restic",
+                '--include',
+                filename
+            ]
 
             if verify:
                 cmd.append('--verify')
@@ -741,7 +737,6 @@ class Milbi():
             except Exception as e:
                 self._to_console(f"ERROR: ({e}).")
                 sys.exit(1)
-
 
     def _preseed_filelist(self, randomdir=None):
         if randomdir is not None and os.path.isdir(randomdir):
