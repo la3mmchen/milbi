@@ -88,6 +88,15 @@ def test_cli_check():
     assert _run(cmd) == 0
 
 
+def test_cli_state():
+    """
+    test if cli can execute state subcmd
+    """
+    cmd = _prepare()
+    cmd['args'].extend(['state'])
+    assert _run(cmd) == 0
+
+
 def test_cli_prune():
     """
     test if cli can prune from the repository
@@ -118,7 +127,6 @@ def test_cli_restore():
 
     cmd = _prepare()
     cmd['args'].extend(['get', '--repo', 'resticrepo'])
-    cmd['rc'] = 0
     assert _run(cmd) == 0
 
     _cleanup()
@@ -132,7 +140,6 @@ def test_cli_fuzz():
 
     cmd = _prepare()
     cmd['args'].extend(['fuzz', '--count', '10'])
-    cmd['rc'] = 0
     assert _run(cmd) == 0
 
     _cleanup()
@@ -166,7 +173,6 @@ def _cleanup():
                     shutil.rmtree(path)
                 except OSError:
                     os.remove(path)
-
 
 def _run(cmd):
     try:

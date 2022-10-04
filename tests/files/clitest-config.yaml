@@ -3,6 +3,7 @@
 global:
   debug: True
   logfile: "./tests/files/tests.log"
+  statefile: "./tests/files/milbi.state"
   hostalias: "test0r"
   restore:
       dir: "./tests/files/resticrepo-restore"

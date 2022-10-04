@@ -7,7 +7,7 @@ PYTEST_INSTALLS := pytest==7.1.3 pytest-cov==3.0.0 pytest-forked==1.4.0 pytest-x
 .PHONY: lint
 lint: ## lint with flake8
 lint:
-	pip3 install flake8
+	python3 -m pip install flake8
 	flake8 --config .flake8 milbi.py
 	flake8 --config .flake8 src/*/*.py
 
@@ -18,7 +18,7 @@ tests: testprepare unittests clitests
 .PHONE: testprepare
 testprepare: 
 testprepare:
-	@pip3 install ${PYTEST_INSTALLS}
+	@python3 -m pip install ${PYTEST_INSTALLS}
 
 .PHONY: unittests
 unittests: ## execute unittests
