@@ -1,7 +1,7 @@
 .DEFAULT_GOAL := help
 PYTEST_FLAGS := -x -n 1 -v --pyargs .
 COVERAGE_FLAGS := --junitxml=pytest-report.xml
-PYTEST_INSTALLS := pytest==7.1.3 pytest-cov==3.0.0 pytest-forked==1.4.0 pytest-xdist==2.5.0
+PYTEST_INSTALLS := pytest==7.1.3 pytest-cov==3.0.0 pytest-forked==1.4.0 pytest-xdist==2.5.0 tox==3.26.0
 
 
 .PHONY: lint
@@ -16,7 +16,7 @@ tests: ## execute all test cases
 tests: testprepare unittests clitests
 
 .PHONE: testprepare
-testprepare: 
+testprepare:
 testprepare:
 	@python3 -m pip install ${PYTEST_INSTALLS}
 
