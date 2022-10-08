@@ -18,6 +18,10 @@ class State(object):
         self._read_only = read_only
         self._state_file = state_file
 
+
+        if not os.path.exists(state_file):
+            open(state_file, 'a').close()
+
         with open(state_file) as f:
             try:
                 old_one = json.load(f)
