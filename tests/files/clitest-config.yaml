@@ -10,7 +10,7 @@ global:
 
 restic:
   enabled: True
-  bin: "/usr/local/bin/restic"
+  bin: "restic"
   repos:
     - passphrase: "iamarandompasswort"
       repo: "./tests/files/resticrepo"
