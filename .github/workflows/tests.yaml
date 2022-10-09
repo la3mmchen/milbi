@@ -21,4 +21,7 @@ jobs:
           python3 -m pip install --upgrade pip
           make testprepare
           sudo apt-get install -y restic rsync
+          which restic
+          restic version
+          restic --help
           tox
