@@ -18,6 +18,12 @@ class Config(object):
     _ATTRIBUTES = {
         'global': {
             'logfile': '<String>; Provide a path in your filesystem for the application to log.',
+            'debug': 'Set to true to enable debug output.',
+            'statefile': '<String> Provide a path in your filesystem for the application to keep a rudimental state.',
+            'hostalias': '<String> Provide a hostname',
+            'restore': {
+                'dir': '<String> Provide a path in your filesystem for the application to restore',
+            }
         },
         'borgbackup': {
             'enabled': 'A trigger to activate/deactivate the backup for borgbackup. (Options: True / False).',

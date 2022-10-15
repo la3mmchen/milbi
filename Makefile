@@ -1,13 +1,13 @@
 .DEFAULT_GOAL := help
 PYTEST_FLAGS := -x -n 1 -v --pyargs .
 COVERAGE_FLAGS := --junitxml=pytest-report.xml
-PYTEST_INSTALLS := pytest==7.1.3 pytest-cov==3.0.0 pytest-forked==1.4.0 pytest-xdist==2.5.0
+PYTEST_INSTALLS := pytest==7.1.3 pytest-cov==3.0.0 pytest-forked==1.4.0 pytest-xdist==2.5.0 tox==3.26.0
 
 
 .PHONY: lint
 lint: ## lint with flake8
 lint:
-	pip3 install flake8
+	python3 -m pip install flake8
 	flake8 --config .flake8 milbi.py
 	flake8 --config .flake8 src/*/*.py
 
@@ -16,9 +16,9 @@ tests: ## execute all test cases
 tests: testprepare unittests clitests
 
 .PHONE: testprepare
-testprepare: 
 testprepare:
-	@pip3 install ${PYTEST_INSTALLS}
+testprepare:
+	@python3 -m pip install ${PYTEST_INSTALLS}
 
 .PHONY: unittests
 unittests: ## execute unittests

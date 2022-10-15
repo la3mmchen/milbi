@@ -3,13 +3,14 @@
 global:
   debug: True
   logfile: "./tests/files/tests.log"
+  statefile: "./tests/files/milbi.state"
   hostalias: "test0r"
   restore:
       dir: "./tests/files/resticrepo-restore"
 
 restic:
   enabled: True
-  bin: "/usr/local/bin/restic"
+  bin: "restic"
   repos:
     - passphrase: "iamarandompasswort"
       repo: "./tests/files/resticrepo"

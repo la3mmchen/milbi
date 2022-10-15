@@ -1,0 +1,36 @@
+name: pytests
+
+on: [push]
+
+jobs:
+  build:
+
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python-version: ["3.8", "3.9", "3.10"]
+
+    steps:
+      - uses: actions/checkout@v3
+      - name: spawn ${{ matrix.python-version }}
+        uses: actions/setup-python@v4
+        with:
+          python-version: ${{ matrix.python-version }}
+      - name: tests
+        run: |
+          python --version
+          # add base
+          sudo apt-get install -y wget bzip2 rsync
+          mkdir -p tmp
+          wget -P tmp/ https://github.com/restic/restic/releases/download/v0.14.0/restic_0.14.0_linux_amd64.bz2
+          bzip2 -d tmp/restic_0.14.0_linux_amd64.bz2
+          ls -all tmp
+          cp ./tmp/restic_0.14.0_linux_amd64 /usr/local/bin/restic
+          chmod +x /usr/local/bin/restic
+          restic version
+          restic --help
+          # add python stuff
+          python3 -m pip install --upgrade pip
+          make testprepare
+          # run tests
+          tox

@@ -12,6 +12,7 @@ from glob import glob
 from hashlib import sha512
 
 from .class_config import Config
+from .class_state import State
 
 
 class Milbi():
@@ -32,6 +33,7 @@ class Milbi():
     debug = None
 
     _logfile_handle = None
+    _state = None
     _timestamp = None
     _shell_env = None
 
@@ -42,6 +44,9 @@ class Milbi():
 
         # load content from config file
         Config(config)
+
+        # create state object
+        self._state = State(Config._CONFIG['global']['statefile'])
 
         # create a filehandle to log
         self._to_console(f"logging to {Config._CONFIG['global']['logfile']}")
@@ -98,6 +103,18 @@ class Milbi():
                     self._to_console("`- config not valid at the moment. skipping")
                     pass
                 self._to_console("")
+
+    def state(self):
+        """
+        reads the state from the last milbi operations and prints it
+
+
+        Parameters
+        ----------
+        """
+        # todo: this might not be the best way to create nice output - but it works for now
+        print(f"{yaml.dump(self._state.get_state()['previous'])}")
+
 
     def config(self, explain=False):
         """
@@ -161,7 +178,15 @@ class Milbi():
                     cmd.append("--dry-run")
 
                 try:
-                    self._cmd_run_restic(cmd=cmd, passphrase=item['passphrase'])
+                    rc, stdout, stderr = self._cmd_run_restic(cmd=cmd, passphrase=item['passphrase'])
+                    self._state.set_state({
+                        'command': 'backup',
+                        'repo': item['repo'],
+                        'rc': rc,
+                        'stdout': stdout,
+                        'stderr': stderr,
+                    })
+                    self._state.set_state_readwrite()
                 except Exception as e:
                     self._to_console(f"ERROR: ({e}).")
                     sys.exit(1)
@@ -217,7 +242,15 @@ class Milbi():
                 ]
 
                 try:
-                    self._cmd_run_restic(cmd=cmd, passphrase=item['passphrase'])
+                    rc, stdout, stderr = self._cmd_run_restic(cmd=cmd, passphrase=item['passphrase'])
+                    self._state.set_state({
+                        'command': 'check',
+                        'repo': item['repo'],
+                        'rc': rc,
+                        'stdout': stdout,
+                        'stderr': stderr,
+                    })
+                    self._state.set_state_readwrite()
                 except Exception as e:
                     self._to_console(f"ERROR: ({e}).")
                     sys.exit(1)
@@ -293,7 +326,15 @@ class Milbi():
                 ]
 
                 try:
-                    self._cmd_run_restic(cmd=cmd, passphrase=item['passphrase'])
+                    rc, stdout, stderr = self._cmd_run_restic(cmd=cmd, passphrase=item['passphrase'])
+                    self._state.set_state({
+                        'command': 'info',
+                        'repo': item['repo'],
+                        'rc': rc,
+                        'stdout': stdout,
+                        'stderr': stderr,
+                    })
+                    self._state.set_state_readwrite()
                 except Exception as e:
                     self._to_console(f"ERROR: ({e}).")
                     sys.exit(1)
@@ -340,7 +381,15 @@ class Milbi():
                 ]
 
                 try:
-                    self._cmd_run_restic(cmd=cmd, passphrase=item['passphrase'])
+                    rc, stdout, stderr = self._cmd_run_restic(cmd=cmd, passphrase=item['passphrase'])
+                    self._state.set_state({
+                        'command': 'prune',
+                        'repo': item['repo'],
+                        'rc': rc,
+                        'stdout': stdout,
+                        'stderr': stderr,
+                    })
+                    self._state.set_state_readwrite()
                 except Exception as e:
                     self._to_console(f"ERROR: ({e}).")
                     sys.exit(1)
@@ -588,7 +637,7 @@ class Milbi():
         """
 
         command = [
-            '/usr/local/bin/rsync',
+            '/usr/bin/rsync',
             '--stats',
             '--progress',
             '--verbose',
