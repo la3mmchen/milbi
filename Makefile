@@ -34,6 +34,14 @@ clitests:
 	@coverage run --source=src -m pytest ${PYTEST_FLAGS} -k test_cli ${COVERAGE_FLAGS}
 	@coverage report -m
 
+.PHONY: getlatestrestic
+getlatestrestic: ## get a restic binary
+getlatestrestic:
+	mkdir -p tmp
+	curl -sS https://github.com/restic/restic/releases/download/v0.14.0/restic_0.14.0_linux_amd64.bz2 -o tmp/restic_0.14.0_linux_amd64.bz2
+	tar -xvjf tmp/restic_0.14.0_linux_amd64.bz2
+
+
 .PHONY: help
 help: ## Show this help.
 help:

@@ -20,8 +20,11 @@ jobs:
         run: |
           python3 -m pip install --upgrade pip
           make testprepare
-          sudo apt-get install -y restic rsync
-          which restic
+          sudo apt-get install -y curl rsync
+          make getlatestrestic
+          ls -la tmp
+          echo $PATH
+          cp ./tmp/restic /usr/local/bin
           restic version
           restic --help
           tox
