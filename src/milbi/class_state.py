@@ -7,8 +7,8 @@ import typing
 
 class State(object):
     _state: typing.Optional[dict] = {
-      'current': { },
-      'previous': { },
+        'current': {},
+        'previous': {},
     }
     _state_file = None
     _read_only = True
@@ -18,7 +18,6 @@ class State(object):
         self._read_only = read_only
         self._state_file = state_file
 
-
         if not os.path.exists(state_file):
             open(state_file, 'a').close()
 
@@ -26,7 +25,7 @@ class State(object):
             try:
                 old_one = json.load(f)
                 self._state['previous'] = old_one['current']
-            except Exception as e:
+            except Exception:
                 self._state['previous'] = '{ }'
 
     def __del__(self):

@@ -77,7 +77,14 @@ class Config(object):
                     'value': '<b2 app key>'
                 }
             ]
-        }
+        },
+        'flows': [{
+            'name': 'Give a meaningful name',
+            'tasks': [
+                'a milbi subcommand like backup,check,prune,sync',
+                'a milbi subcommand like backup,check,prune,sync',
+            ]
+        }]
     }
 
     def __init__(self, config_file=None):

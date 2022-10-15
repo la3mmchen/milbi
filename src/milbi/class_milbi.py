@@ -115,7 +115,6 @@ class Milbi():
         # todo: this might not be the best way to create nice output - but it works for now
         print(f"{yaml.dump(self._state.get_state()['previous'])}")
 
-
     def config(self, explain=False):
         """
         shows the current config that is loaded from the configured file.
@@ -521,6 +520,33 @@ class Milbi():
             except Exception as e:
                 self._to_console(f"ERROR: ({e}).")
                 sys.exit(1)
+
+    def flows(self, flow="all", show=False):
+        """
+        execute configured milbi flows
+
+        Parameters
+        ----------
+        flow: string
+            select a configured flow to execute. defaults to "all"
+
+        show: bool
+            just print configured flows without executing it
+
+        """
+        if 'flows' in Config._CONFIG and len(Config._CONFIG['flows']) > 0:
+            if show is True:
+                self._to_console("showing the configured flows:\n")
+            for item in Config._CONFIG['flows']:
+                if flow.lower() in ['all', item['name']]:
+                    self._to_console(f"flow [{item['name']}]: {' > '.join(item['tasks'])}")
+                    for task in item['tasks']:
+                        try:
+                            if show is False:
+                                self._to_console(f"\nexecuting flow [{item['name']}] : task {task}")
+                                getattr(self, task)()
+                        except Exception as e:
+                            print(f"function not found. {e}")
 
     def _cmd_run_restic(self, cmd, passphrase):
         """

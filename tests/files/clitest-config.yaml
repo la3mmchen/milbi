@@ -24,3 +24,18 @@ syncs:
     type: "rsync"
     source: "./tests/files/resticrepo"
     target: "./tests/files/resticrepo-copy"
+
+flows:
+  - name: default
+    tasks:
+      - backup
+      - check
+      - prune
+      - sync
+  - name: quick
+    tasks:
+      - info
+  - name: wrong
+    tasks:
+      - list
+      - info
