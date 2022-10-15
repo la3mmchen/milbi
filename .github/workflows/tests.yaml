@@ -23,7 +23,8 @@ jobs:
           mkdir -p tmp
           wget -P tmp/ https://github.com/restic/restic/releases/download/v0.14.0/restic_0.14.0_linux_amd64.bz2
           bzip2 -d tmp/restic_0.14.0_linux_amd64.bz2
-          cp ./tmp/restic/restic_0.14.0_linux_amd64 /usr/local/bin/restic
+          ls -all tmp
+          cp ./tmp/restic_0.14.0_linux_amd64 /usr/local/bin/restic
           chmod +x /usr/local/bin/restic
           restic version
           restic --help
