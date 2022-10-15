@@ -18,6 +18,7 @@ jobs:
           python-version: ${{ matrix.python-version }}
       - name: tests
         run: |
+          python --version
           # add base
           sudo apt-get install -y wget bzip2 rsync
           mkdir -p tmp
