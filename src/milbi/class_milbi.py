@@ -637,7 +637,7 @@ class Milbi():
         """
 
         command = [
-            '/usr/bin/env rsync',
+            '/usr/bin/rsync',
             '--stats',
             '--progress',
             '--verbose',
