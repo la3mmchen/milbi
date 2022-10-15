@@ -38,7 +38,7 @@ clitests:
 getlatestrestic: ## get a restic binary
 getlatestrestic:
 	mkdir -p tmp
-	curl -sS https://github.com/restic/restic/releases/download/v0.14.0/restic_0.14.0_linux_amd64.bz2 -o tmp/restic_0.14.0_linux_amd64.bz2
+	curl -L --create-dirs -O --output-dir tmp/ https://github.com/restic/restic/releases/download/v0.14.0/restic_0.14.0_linux_amd64.bz2
 	tar -xvjf tmp/restic_0.14.0_linux_amd64.bz2
 
 
