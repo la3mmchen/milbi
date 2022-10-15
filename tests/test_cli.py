@@ -139,7 +139,41 @@ def test_cli_fuzz():
     _init()
 
     cmd = _prepare()
-    cmd['args'].extend(['fuzz', '--count', '10'])
+    cmd['args'].extend(['fuzz', '--count', '3'])
+    assert _run(cmd) == 0
+
+    _cleanup()
+
+
+def test_cli_flows():
+    """
+    test if cli can execute all flows
+    """
+    _init()
+
+    cmd = _prepare()
+    cmd['args'].extend(['flows'])
+    assert _run(cmd) == 0
+
+    _cleanup()
+
+
+def test_cli_flow():
+    """
+    test if cli can execute one specific flow
+    """
+    _init()
+
+    cmd = _prepare()
+    cmd['args'].extend(['flows', '--flow', 'quick'])
+    assert _run(cmd) == 0
+
+    cmd = _prepare()
+    cmd['args'].extend(['flows', '--flow', 'none'])
+    assert _run(cmd) == 0
+
+    cmd = _prepare()
+    cmd['args'].extend(['flows', '--flow', 'wrong'])
     assert _run(cmd) == 0
 
     _cleanup()

@@ -1,6 +1,6 @@
 # milbi
 
-helps to organize backups. with a declarative config. yaml!
+helps to organize backups. with a config. yaml!
 
 i wrote it for myself to get rid of my random backup bash scripts that i had before.
 
@@ -91,6 +91,31 @@ borgbackup:
 ```
 
 see [config example](https://github.com/la3mmchen/milbi/blob/main/example-config.yaml) for a full example.
+
+## flows
+
+milbi supports the invocation of multiple subcommands via the flows config.
+
+an example can look like this. with this milbi first creates a backup, prunes, then checks the config, and afterwards executes the configured syncs.
+
+```yaml
+(...)
+flows:
+  - name: default
+    tasks:
+      - backup
+      - prune
+      - check
+      - sync
+```
+
+start the flow via `flows` subcommand:
+
+```
+milbi --config tests/files/clitest-config.yaml flows --flow=default
+(...)
+flow [default]: backup > check > prune > sync
+```
 
 ## run it
 
