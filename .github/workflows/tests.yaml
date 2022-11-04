@@ -1,15 +1,15 @@
+---
 name: pytests
 
 on: [push]
 
 jobs:
-  build:
 
+  build:
     runs-on: ubuntu-latest
     strategy:
       matrix:
         python-version: ["3.8", "3.9", "3.10"]
-
     steps:
       - name: get task.dev
         uses: arduino/setup-task@v1
@@ -20,7 +20,6 @@ jobs:
           python-version: ${{ matrix.python-version }}
       - name: tests
         run: |
-          python --version
           # add base
           sudo apt-get install -y wget bzip2 rsync
           mkdir -p tmp
@@ -30,7 +29,6 @@ jobs:
           cp ./tmp/restic_0.14.0_linux_amd64 /usr/local/bin/restic
           chmod +x /usr/local/bin/restic
           restic version
-          restic --help
           # add python stuff
           python3 -m pip install --upgrade pip
           task test:prepare

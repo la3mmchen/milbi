@@ -1,0 +1,25 @@
+---
+name: release
+
+on: [push]
+
+jobs:
+
+  to_pypi:
+    #if: github.event.pull_request.merged == true
+    runs-on: ubuntu-latest
+    steps:
+      - name: get task.dev
+        uses: arduino/setup-task@v1
+      - uses: actions/checkout@v3
+      - name: spawn python
+        uses: actions/setup-python@v4
+        with:
+          python-version: "3.10"
+      - name: build
+        run: task build
+      - name: Publish package
+        if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags')
+        uses: pypa/gh-action-pypi-publish@release/v1
+        with:
+          password: ${{ secrets.PYPI_API_TOKEN }}

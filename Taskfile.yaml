@@ -57,3 +57,8 @@ tasks:
       - echo "running test limited to: ${PYTEST_FILTER}"
       - coverage run --source=src -m pytest ${PYTEST_FLAGS} -k test_cli ${COVERAGE_FLAGS}
       - coverage report -m
+
+  build:
+    desc: "build package"
+    cmds:
+      - tox -e build
