@@ -143,3 +143,18 @@ restic init --repo <local path>
 #### borbackup
 
 to be described
+
+## development stuff
+
+this repository contains a Taskfile that helps with all the different tasks:
+
+```bash
+$ task
+task: Available tasks for this project:
+* dev:lint:             run lint
+* reqs:                 check requirements
+* test:clitests:        run clitests
+* test:prepare:         prepare for tests
+* test:unittests:       run unittests
+* tests:                run all tests
+```

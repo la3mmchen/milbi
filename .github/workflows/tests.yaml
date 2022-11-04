@@ -11,6 +11,8 @@ jobs:
         python-version: ["3.8", "3.9", "3.10"]
 
     steps:
+      - name: get task.dev
+        uses: arduino/setup-task@v1
       - uses: actions/checkout@v3
       - name: spawn ${{ matrix.python-version }}
         uses: actions/setup-python@v4
@@ -31,6 +33,6 @@ jobs:
           restic --help
           # add python stuff
           python3 -m pip install --upgrade pip
-          make testprepare
+          task test:prepare
           # run tests
           tox
