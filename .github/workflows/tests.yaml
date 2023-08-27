@@ -1,0 +1,49 @@
+name: tests
+on: [push]
+
+env:
+  GO_VERSION: 1.21.0
+  RESTIC_VERSION: 0.16.0
+
+jobs:
+
+  go-build:
+    name: build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v1
+      - uses: actions/setup-go@v2
+        with:
+          go-version: ${{ env.GO_VERSION }}
+      - name: build
+        run: |
+          sudo snap install task --classic
+          cd milbi
+          task build
+
+  go-tests:
+    name: tests
+    continue-on-error: true
+    runs-on: ubuntu-latest
+    needs:
+      - go-build
+    steps:
+      - uses: actions/checkout@v3
+      - uses: actions/setup-go@v4
+        with:
+          go-version: ${{ env.GO_VERSION }}
+      - name: install restic 
+        run: |
+          sudo apt-get install -y wget bzip2 rsync
+          mkdir -p tmp
+          wget -P tmp/ https://github.com/restic/restic/releases/download/v${{ env.RESTIC_VERSION }}/restic_${{ env.RESTIC_VERSION }}_linux_amd64.bz2
+          bzip2 -d tmp/restic_${{ env.RESTIC_VERSION }}_linux_amd64.bz2
+          ls -all tmp
+          cp ./tmp/restic_${{ env.RESTIC_VERSION }}_linux_amd64 /usr/local/bin/restic
+          chmod +x /usr/local/bin/restic
+          restic version
+      - name: do
+        run: |
+          sudo snap install task --classic
+          cd milbi
+          task develop
