@@ -2,31 +2,49 @@
 
 helps to organize backups. with a config. yaml!
 
-i wrote it for myself to get rid of my random backup bash scripts that i had before.
+I wrote it for myself to get rid of my random backup bash scripts that i had before.
 
-```bash
-[~] $ milbi backup
-logging to ~/.milbi/milbibackup.log
-doing my-macbook-backup
-open repository
-lock repository
-using parent snapshot e7000ce5
-load index files
-start scan on [~/repos ~/docs ~/.ssh]
-start backup on [~/repos ~/docs ~/.ssh]
-scan finished in 6.598s: 82805 files, 6.863 GiB
-
-Files:          44 new,   134 changed, 82627 unmodified
-Dirs:           12 new,   156 changed, 21316 unmodified
-Data Blobs:    130 new
-Tree Blobs:    162 new
-Added to the repository: 7.458 MiB (3.232 MiB stored)
-
-processed 82805 files, 6.863 GiB in 0:18
-snapshot cece5d02 saved
+```yaml
+apiVersion: milbi/v2
+kind: repo
+metadata:
+  name: my-backup-repo
+  hostalias: "local"
+spec:
+  passphrase: "iamarandompasswort"
+  generations: 7
+  directory: "./tests/files/resticrepo"
+  excludes:
+    - "*resticrepo*"
+  content:
+    - ./tests/files/backup-folder
 ```
 
-as i work mostly with restic at the moment, milbis best user experience is with restic. but it should work with borg as well - in theory.
+```bash
+[~] $ milbi snapshot
+Create a snapshot.
+open repository
+lock repository
+using parent snapshot 16f5c660
+load index files
+start scan on [~/./tests/files/backup-folder]
+start backup on [~/./tests/files/backup-folder]
+scan finished in 0.228s: 2 files, 1 B
+(...)
+modified  /Users/alexkoehler/, saved in 0.008s (0 B added, 0 B stored, 0 B metadata)
+modified  /Users/, saved in 0.014s (0 B added, 0 B stored, 306 B metadata)
+
+Files:           0 new,     0 changed,     2 unmodified
+Dirs:            0 new,     2 changed,     8 unmodified
+Data Blobs:      0 new
+Tree Blobs:      2 new
+Added to the repository: 753 B (608 B stored)
+
+processed 2 files, 1 B in 0:00
+snapshot 5e9a299a saved
+```
+
+Milbi works with [restic](https://restic.net/) at the moment. but it should work with [borg](https://borgbackup.readthedocs.io/) as well - at least in theory.
 
 ## features
 
@@ -41,7 +59,7 @@ at the moment, mibli can be configured to do backups with the following technolo
 
 additionally, milbi can:
 
-- copy directories with rsync
+- copy stuff with rsync
 - sync to backblaze b2 with [b2 cli](https://www.backblaze.com/b2/docs/quick_command_line.html)
 
 ### verification

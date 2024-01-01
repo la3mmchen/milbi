@@ -1,53 +1,16 @@
 ---
-# set global options
-global:
-  debug: True
-  logfile: "~/.milbi/milbibackup.log"
-  restore:
-      dir: "~/mnt"
-
-# configure borg
-borgbackup:
-  enabled: False
-  bin: "/usr/local/bin/borg"
-  repos:
-    - passphrase: "abcdefgh"
-      keep: 7
-      repo: "~/backups/"
-      excludes: "*github.com*"
-      targets:
-        - ~/repos
-        - ~/Documents
-
-# configure restic
-restic:
-  enabled: True
-  bin: "/usr/local/bin/restic"
-  repos:
-    - passphrase: "abcdefgh"
-      repo: "~/backups-restic/"
-      excludes: "*github.com*"
-      keep: 7
-      targets:
-        - ~/repos
-        - ~/Documents
-        - ~/.ssh
-
-# have some syncs
-syncs:
-  - name: "kdbx"
-    type: "rsync"
-    source: "~/kdbx"
-    target: "/Volumes/backup"
-  - name: "notebookbackup"
-    type: "b2"
-    source: "~/backups-restic/"
-    target: "b2://random-bucket/backup"
-
-b2:
-  binary: "/usr/local/bin/b2"
-  env:
-    - name: "B2_APPLICATION_KEY_ID"
-      value: "<..>"
-    - name: "B2_APPLICATION_KEY"
-      value: "<..>"
+apiVersion: milbi/v2
+kind: repo
+metadata:
+  name: my-backup-repo
+  hostalias: "test0r"
+spec:
+  passphrase: "iamarandompasswort"
+  generations: 7
+  directory: "~/backups-restic/"
+  excludes:
+    - "*github.com*"
+  content:
+    - ~/repos
+    - ~/Documents
+    - ~/.ssh

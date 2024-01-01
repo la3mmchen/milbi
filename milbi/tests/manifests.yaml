@@ -1,0 +1,31 @@
+---
+apiVersion: milbi/v2
+kind: repo
+metadata:
+  name: my-backup-repo
+  hostalias: "test0r"
+spec:
+  passphrase: "iamarandompasswort"
+  generations: 1
+  directory: "./tests/files/resticrepo"
+  excludes:
+    - "*resticrepo*"
+  content:
+    - ./tests/files/backup-folder
+---
+apiVersion: milbi/v2
+kind: sync
+metadata:
+  name: randomsync
+spec:
+  name: "randomsync"
+  binary: "rsync"
+  source: "./tests/files/resticrepo"
+  target: "./tests/files/resticrepo-copy"
+  flags:
+    - '--stats'
+    - '--progress'
+    - '--verbose'
+    - '--archive'
+    - '--compress'
+    - '--delete'

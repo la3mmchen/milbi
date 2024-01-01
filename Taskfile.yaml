@@ -3,11 +3,14 @@
 version: '3'
 
 env:
-  PYTEST_FLAGS: "-x -n 1 -v --pyargs ."
-  COVERAGE_FLAGS: "--junitxml=pytest-report.xml"
-  PYTEST_INSTALLS: "pytest==7.1.3 pytest-cov==3.0.0 pytest-forked==1.4.0 pytest-xdist==2.5.0 tox==3.26.0"
-  BUILD_INSTALLS: "tox"
-  ARTIFACT_DIR: "./dist"
+  GIT_COMMIT:
+    sh: git describe --always --long --dirty
+  PROJECT_NAME:
+    sh: basename "$PWD"
+  WORKDIR: "./milbi"
+  PROJECT: la3mmchen
+  EXECUTABLE: bin/milbi
+  BINARY_NAME: milbi
 
 tasks:
   default:
@@ -15,80 +18,71 @@ tasks:
       - task -l
     silent: true
 
-  reqs:
-    desc: "check requirements"
-    preconditions:
-      - sh: "which flake8"
-        msg: "go not found"
-
-  dev:lint:
-    desc: "run lint"
-    deps:
-      - reqs
+  fmt:
+    dir: "{{.WORKDIR}}"
+    desc: "lint code"
     cmds:
-      - flake8 --config .flake8 milbi.py
-      - flake8 --config .flake8 src/*/*.py
+      - go mod vendor
+      - go fmt
 
-  tests:
-    desc: "run all tests"
-    preconditions:
-      - task "test:prepare"
-    deps:
-      - "test:prepare"
-      - "test:unittests"
-      - "test:clitests"
-
-  test:prepare:
-    desc: "prepare for tests"
+  develop:
+    dir: "{{.WORKDIR}}"
+    desc: "build-test"
     cmds:
-      - python3 -m pip install ${PYTEST_INSTALLS}
-
-  test:unittests:
-    desc: "run unittests"
-    cmds:
-      - echo "running test limited to: ${PYTEST_FILTER}"
-      - coverage run --source=src -m pytest ${PYTEST_FLAGS} -k test_unit ${COVERAGE_FLAGS}
-      - coverage report -m
-
-  test:clitests:
-    desc: "run clitests"
-    cmds:
-      - echo "running test limited to: ${PYTEST_FILTER}"
-      - coverage run --source=src -m pytest ${PYTEST_FLAGS} -k test_cli ${COVERAGE_FLAGS}
-      - coverage report -m
+      - task "build"
+      - task "test"
 
   build:
-    desc: "build package"
+    dir: "{{.WORKDIR}}"
+    desc: "build"
     preconditions:
-      - task "build:prepare"
+      - task "fmt"
     cmds:
-      - tox -e build
+      - task "build:prepare"
+      - task "build:executable"
+      - task "test:binary"
+
+  test:
+    dir: "{{.WORKDIR}}"
+    desc: "tests"
+    preconditions:
+      - task "build"
+    cmds:
+      - task "test:binary"
+      - task "test:gotest:unittests"
+      - task "test:gotest:clitests"
+
 
   build:prepare:
-    desc: "prepare for tests"
+    dir: "{{.WORKDIR}}"
+    desc: "prepare build"
     cmds:
-      - python3 -m pip install ${BUILD_INSTALLS}
-      - echo top
+      - go mod tidy
+      - go mod vendor
+      - go mod verify
 
-  release:
-    desc: "release workflow"
+  build:executable:
+    dir: "{{.WORKDIR}}"
+    desc: "build binary"
     cmds:
-      - task "release:clean"
-      - task "build"
-      - task "release:testpypi"
-      - task "release:pypi"
+      - rm -f ${EXECUTABLE}
+      - go build -o $EXECUTABLE -ldflags "-X main.AppVersion=$GIT_COMMIT" .
 
-  release:clean:
-    desc: "clean old artifacts"
+  test:binary:
+    dir: "{{.WORKDIR}}"
+    desc: "execute the created binary"
     cmds:
-      - bash -c 'rm -rf "${ARTIFACT_DIR}/*"'
+      - ./bin/milbi
 
-  release:testpypi:
-    desc: "test release to testpypi"
+  test:gotest:unittests:
+    dir: "{{.WORKDIR}}"
+    desc: "execute gotest"
     cmds:
-      - tox -e publish
+      - go test -cover -failfast "./.../app"
+      - go test -cover -failfast "./.../restic"
 
-  release:pypi:
-    desc: "test release to pypi"
+  test:gotest:clitests:
+    dir: "{{.WORKDIR}}"
+    desc: "execute gotest"
     cmds:
-      - tox -e publish -- --repository pypi
+      - go test -v -failfast "."

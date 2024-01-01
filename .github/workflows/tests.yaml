@@ -1,36 +1,49 @@
----
-name: pytests
-
+name: tests
 on: [push]
+
+env:
+  GO_VERSION: 1.21.0
+  RESTIC_VERSION: 0.16.0
 
 jobs:
 
-  build:
+  go-build:
+    name: build
     runs-on: ubuntu-latest
-    strategy:
-      matrix:
-        python-version: ["3.8", "3.9", "3.10"]
     steps:
-      - name: get task.dev
-        uses: arduino/setup-task@v1
-      - uses: actions/checkout@v3
-      - name: spawn ${{ matrix.python-version }}
-        uses: actions/setup-python@v4
+      - uses: actions/checkout@v1
+      - uses: actions/setup-go@v2
         with:
-          python-version: ${{ matrix.python-version }}
-      - name: tests
+          go-version: ${{ env.GO_VERSION }}
+      - name: build
         run: |
-          # add base
+          sudo snap install task --classic
+          cd milbi
+          task build
+
+  go-tests:
+    name: tests
+    continue-on-error: true
+    runs-on: ubuntu-latest
+    needs:
+      - go-build
+    steps:
+      - uses: actions/checkout@v3
+      - uses: actions/setup-go@v4
+        with:
+          go-version: ${{ env.GO_VERSION }}
+      - name: install restic 
+        run: |
           sudo apt-get install -y wget bzip2 rsync
           mkdir -p tmp
-          wget -P tmp/ https://github.com/restic/restic/releases/download/v0.14.0/restic_0.14.0_linux_amd64.bz2
-          bzip2 -d tmp/restic_0.14.0_linux_amd64.bz2
+          wget -P tmp/ https://github.com/restic/restic/releases/download/v${{ env.RESTIC_VERSION }}/restic_${{ env.RESTIC_VERSION }}_linux_amd64.bz2
+          bzip2 -d tmp/restic_${{ env.RESTIC_VERSION }}_linux_amd64.bz2
           ls -all tmp
-          cp ./tmp/restic_0.14.0_linux_amd64 /usr/local/bin/restic
+          cp ./tmp/restic_${{ env.RESTIC_VERSION }}_linux_amd64 /usr/local/bin/restic
           chmod +x /usr/local/bin/restic
           restic version
-          # add python stuff
-          python3 -m pip install --upgrade pip
-          task test:prepare
-          # run tests
-          tox
+      - name: do
+        run: |
+          sudo snap install task --classic
+          cd milbi
+          task develop
