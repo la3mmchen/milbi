@@ -1,0 +1,27 @@
+---
+name: release-devel
+on: [push]
+
+env:
+  GO_VERSION: 1.21.0
+
+permissions:
+    contents: write
+    packages: write
+
+jobs:
+
+  test-version-darwin-arm64:
+    needs: tests
+    name: release-darwin-arm64
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v3
+    - uses: wangyoucao577/go-release-action
+      with:
+        github_token: ${{ secrets.PUSHTOKEN }}
+        goos: darwin
+        goarch: arm64
+        project_path: ./milbi
+        overwrite: true
+        release_tag: devel
