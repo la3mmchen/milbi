@@ -15,6 +15,7 @@ jobs:
       - uses: actions/setup-go@v5
         with:
           go-version: ${{ env.GO_VERSION }}
+          cache: false
       - name: build
         run: |
           sudo snap install task --classic
@@ -32,6 +33,7 @@ jobs:
       - uses: actions/setup-go@v5
         with:
           go-version: ${{ env.GO_VERSION }}
+          cache: false
       - name: install restic 
         run: |
           sudo apt-get install -y wget bzip2 rsync
