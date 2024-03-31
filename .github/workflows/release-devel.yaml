@@ -20,6 +20,11 @@ jobs:
     - uses: wangyoucao577/go-release-action@v1.9
       with:
         github_token: ${{ secrets.PUSHTOKEN }}
+        goos: linux
+        goarch: amd64
+    - uses: wangyoucao577/go-release-action@v1.9
+      with:
+        github_token: ${{ secrets.PUSHTOKEN }}
         goos: darwin
         goarch: arm64
         project_path: ./milbi
