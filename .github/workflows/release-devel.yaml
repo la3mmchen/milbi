@@ -12,8 +12,8 @@ permissions:
 
 jobs:
 
-  test-version-darwin-arm64:
-    name: release-darwin-arm64
+  release-snapshot-workflow:
+    name: release-workflow
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
