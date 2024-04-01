@@ -8,3 +8,4 @@ milbi/tests/files/resticrepo-copy/*
 !milbi/tests/files/resticrepo-copy/.gitkeep
 milbi/tests/files/resticrepo-copy-2/*
 !milbi/tests/files/resticrepo-copy-2/.gitkeep
+dist/

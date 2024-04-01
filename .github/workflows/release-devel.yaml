@@ -31,5 +31,6 @@ jobs:
           distribution: goreleaser
           version: latest
           args: release --clean
+          workdir: milbi
         env:
           GITHUB_TOKEN: ${{ secrets.PUSHTOKEN }}
