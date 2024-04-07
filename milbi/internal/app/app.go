@@ -24,6 +24,7 @@ func CreateApp(cfg *Milbi) *cli.App {
 		Version: cfg.AppVersion,
 		Commands: []*cli.Command{
 			Check(cfg),
+			Dump(cfg),
 			Explain(cfg),
 			Info(cfg),
 			Init(cfg),
