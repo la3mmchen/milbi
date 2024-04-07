@@ -83,4 +83,10 @@ func TestSubcmds(t *testing.T) {
 			t.FailNow()
 		}
 	}
+
+	// check that we've create a repo under /tmp
+	if _, err := os.Stat("/tmp/resticrepo"); os.IsNotExist(err) {
+		t.Log("Tests failed: /tmp/resticrepo not existing.")
+		t.FailNow()
+	}
 }

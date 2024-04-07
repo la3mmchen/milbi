@@ -13,7 +13,7 @@ import (
 	"gopkg.in/yaml.v3"
 )
 
-// withProjectPath enriches relative path with the project path
+// absoluteFromConfigFile enriches relative path with the project path
 // TODO: might be cool to add error handling
 func absoluteFromConfigFile(configgile string, s string) string {
 	_, b, _, _ := runtime.Caller(0)
@@ -61,7 +61,9 @@ func preloadConfig(cfg *Milbi) error {
 		// kind: repo
 		// spec.Directory
 		if manifest.Spec.Directory != "" {
-			cfg.Repos[i].Spec.Directory = absoluteFromConfigFile(cfg.Configfile, manifest.Spec.Directory)
+			if !filepath.IsAbs(manifest.Spec.Directory) {
+				cfg.Repos[i].Spec.Directory = absoluteFromConfigFile(cfg.Configfile, manifest.Spec.Directory)
+			}
 		}
 		//spec.content
 		if len(manifest.Spec.Content) > 0 {

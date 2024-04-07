@@ -3,6 +3,7 @@ module github.com/la3mmchen/milbi
 go 1.21
 
 require (
+	github.com/davecgh/go-spew v1.1.1
 	github.com/urfave/cli/v2 v2.6.0
 	gopkg.in/yaml.v3 v3.0.1
 )

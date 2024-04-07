@@ -14,6 +14,20 @@ spec:
     - ./tests/files/backup-folder
 ---
 apiVersion: milbi/v2
+kind: repo
+metadata:
+  name: my-backup-repo-with-absolute-path
+  hostalias: "test0r"
+spec:
+  passphrase: "iamarandompasswort"
+  generations: 1
+  directory: "/tmp/resticrepo"
+  excludes:
+    - "*resticrepo*"
+  content:
+    - ./tests/files/backup-folder
+---
+apiVersion: milbi/v2
 kind: sync
 metadata:
   name: randomsync
