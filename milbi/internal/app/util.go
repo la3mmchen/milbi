@@ -68,7 +68,9 @@ func preloadConfig(cfg *Milbi) error {
 		//spec.content
 		if len(manifest.Spec.Content) > 0 {
 			for a, content := range manifest.Spec.Content {
-				cfg.Repos[i].Spec.Content[a] = absoluteFromConfigFile(cfg.Configfile, content)
+				if !filepath.IsAbs(content) {
+					cfg.Repos[i].Spec.Content[a] = absoluteFromConfigFile(cfg.Configfile, content)
+				}
 			}
 		}
 	}
@@ -78,7 +80,9 @@ func preloadConfig(cfg *Milbi) error {
 		// kind: sync
 		// spec.source
 		if manifest.Spec.Source != "" {
-			cfg.Syncs[i].Spec.Source = absoluteFromConfigFile(cfg.Configfile, manifest.Spec.Source)
+			if !filepath.IsAbs(manifest.Spec.Source) {
+				cfg.Syncs[i].Spec.Source = absoluteFromConfigFile(cfg.Configfile, manifest.Spec.Source)
+			}
 		}
 	}
 
@@ -106,6 +110,13 @@ func yaml2struct(cfg *Milbi) error {
 			}
 			return fmt.Errorf("document decode failed: %w", err)
 		}
+
+		// on some shells the glob for exclude pattern might break
+		// the execution of our command. to avoid this we make sure those are quoted.
+		for i, v := range d.Spec.Excludes {
+			d.Spec.Excludes[i] = fmt.Sprintf("\"%v\"", v)
+		}
+
 		cfg.Manifests = append(cfg.Manifests, d)
 
 		// sort the document for faster access

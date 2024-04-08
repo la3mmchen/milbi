@@ -49,6 +49,7 @@ func Snapshot(cfg *Milbi) *cli.Command {
 			}
 
 			if err != nil {
+				fmt.Errorf("Failure in creating a snapshot: [%v] \n", err)
 				return err
 			}
 
