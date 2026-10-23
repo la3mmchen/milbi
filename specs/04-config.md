@@ -4,11 +4,12 @@
 
 - The default path is `~/.config/milbi/config.yaml`, overridable with `--config` or `MILBI_CONFIG`.
 - Decoding is strict: unknown fields are errors.
-- `~` and `$VARS` in paths are expanded. Relative paths resolve against the config file's directory.
-- **Destinations** (where data goes) and **jobs** (what runs) are separate, so several jobs can share one destination.
+- `~` and `$VARS` in local paths are expanded. Relative paths resolve against the config file's directory.
+- **Repositories** are shared: they are defined once and several backups reference them by name in `to`.
+  A sync's `to` is an inline rsync target (a local path or `host:path`), not a reference.
+- Retention: a backup's `retention` replaces the default one; its `excludes` are added on top of the defaults.
 
 ```yaml
-# yaml-language-server: $schema=https://raw.githubusercontent.com/la3mmchen/milbi/main/schema/config.json
 version: 1
 
 defaults:
@@ -31,20 +32,17 @@ backups:
     from: [~/Documents, ~/Projects]
     to: [local, b2]
     excludes: ["**/build"]            # added on top of defaults
-    schedule: daily
 
   configs:
     from: [~/.config, ~/.ssh]
     to: [b2]
     retention: { daily: 30, monthly: 24 }   # replaces the defaults
-    schedule: weekly
 
 syncs:
   photos:
     from: ~/Pictures/
     to: nas.local:/volume1/mirror/photos/
     delete: false
-    schedule: "0 3 * * *"
 ```
 
 ## Secrets
@@ -56,21 +54,36 @@ syncs:
 
 A plain literal value is a config error.
 
+## Paths
+
+- A sync's `from` keeps its trailing slash exactly as written (rsync copies the directory's contents
+  with it, the directory itself without); path cleaning must not strip it.
+- A sync `to` of the form `host:path` is remote: it is never `~`-expanded or resolved against the
+  config directory.
+
 ## Validation (`milbi config validate`)
 
 These are errors:
 
 - `version` is missing or unsupported.
-- A job or destination name doesn't match `[a-z0-9-]+`.
-- A job references a destination that doesn't exist.
-- A `backup` job points to a non-restic destination, or a `sync` job to a non-rsync destination.
-- A backup job has no `paths`, or a sync job has no `source`.
+- A repository, backup or sync name doesn't match `[a-z0-9-]+`.
+- A name is used by both a backup and a sync (`milbi run <name>` addresses both).
+- A backup's `to` names a repository that doesn't exist, is empty, or lists one twice.
+- A backup has no `from`, or a sync has no `from` or no `to`.
+- A retention key is not one of `last`, `hourly`, `daily`, `weekly`, `monthly`, `yearly`, or its value is negative.
+- A backup's effective retention (its own, else the default) keeps nothing: every value is zero or none is set
+  (`forget` would remove every snapshot).
+- An `env` key is not a valid variable name, or sets `RESTIC_PASSWORD*` (the password comes from `password`).
 - A secret uses a literal value or an unknown scheme.
 
-All errors are reported at once, with the line number where available. On success, the command prints the jobs and their destinations.
+A local `from` path that doesn't exist is a warning, not an error (external volumes may be unmounted).
+
+All errors are reported at once, with the line number where available. On success, the command prints
+the backups with their repositories and the syncs with their targets.
 
 ## Acceptance criteria
 
 - [ ] The example above validates, with exit code 0.
 - [ ] Each error case above produces a clear message and exit code 2.
 - [ ] An unknown field such as `pathz:` is rejected with its line number.
+- [ ] A sync `from` with a trailing slash keeps it after loading; a `host:path` target is left unchanged.
