@@ -1,0 +1,55 @@
+# 06 – Sync (rsync, b2)
+
+## Config
+
+A sync job has a `from` (a local path), a `to`, and optionally `excludes` and `delete` (default `false`).
+The `to` decides the tool (see 04):
+
+- a local path or `host:path` → **rsync**;
+- `b2://bucket/path` → the Backblaze **`b2`** CLI; plain files land in the bucket (no encryption by milbi,
+  history only via the bucket's lifecycle settings). Needs `b2_key_id` and `b2_key` (secret refs).
+
+The `from` is passed through **verbatim**, so a trailing `/` keeps rsync's meaning: `~/Pictures/` syncs the
+folder's contents, while `~/Pictures` syncs the folder itself. The README documents this.
+
+## Execution (`milbi run <job>`)
+
+### rsync
+
+- Command: `rsync -a --partial --human-readable --stats [--delete] [--exclude ...] <from> <to>`.
+- `--delete` is added **only** when `delete: true`.
+- With `--dry-run`, milbi adds `-n` to rsync and runs it, so the user sees what would change.
+- milbi parses `--stats` to get the number of files transferred and the bytes sent.
+- **openrsync** (detected from `rsync --version`) gets only the flags it supports. `doctor` warns about it.
+
+### b2
+
+- Command: `b2 sync [--delete] [--dry-run] [--exclude-regex ...] <from> b2://bucket/path`.
+- `--delete` is added **only** when `delete: true`.
+- Credentials go only into the child environment as `B2_APPLICATION_KEY_ID` / `B2_APPLICATION_KEY`,
+  never into argv, logs or state; milbi never runs `b2 account authorize`.
+- `excludes` globs are translated to `--exclude-regex`; a glob that can't be translated is a config error.
+- milbi reads the uploaded / deleted counts from `b2 sync`'s output where it reports them.
+- `b2` is optional: if it is not on PATH, a `b2://` job fails before starting with a clear error
+  (`failed`, exit code as in 05); rsync jobs and backups are unaffected.
+
+### Both
+
+- State, logs, locking, and exit codes behave exactly as in 05.
+
+## doctor
+
+- `doctor` reports `b2` (`b2 version`) as optional: missing is fine, unless the loaded config has a
+  `b2://` sync, then it is a missing tool (exit code 3).
+
+## Acceptance criteria
+
+- [ ] A sync to a local temp dir copies the files, and the status file shows the transferred count.
+- [ ] Without `delete: true`, files removed from the source stay in the target.
+- [ ] With `delete: true`, files removed from the source are removed from the target.
+- [ ] `--dry-run` changes nothing in the target and prints the planned changes.
+- [ ] rsync exit codes other than 0 result in `failed`, with the rsync error message in the status file.
+- [ ] A `b2://` job runs `b2 sync` (fake b2) with `--delete` only when `delete: true`, `--dry-run` passed
+  through, and the keys only in the environment (checked by the fake).
+- [ ] A `b2://` job with no `b2` on PATH fails with a clear message; `doctor` then exits 3, and exits 0
+  without a `b2://` sync.

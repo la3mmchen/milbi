@@ -1,0 +1,31 @@
+exec milbi config validate --config ok.yaml
+stdout 'is valid'
+stdout 'docs -> r'
+stdout 's -> host:/x/'
+
+env MILBI_CONFIG=bad.yaml
+! exec milbi config validate
+stderr 'line 4: field pathz not found'
+
+! exec milbi config validate --config missing.yaml
+
+-- ok.yaml --
+version: 1
+repositories:
+  r:
+    url: /r
+    password: env:P
+backups:
+  docs:
+    from: [.]
+    to: [r]
+    retention: {last: 1}
+syncs:
+  s:
+    from: ./
+    to: host:/x/
+-- bad.yaml --
+version: 1
+backups:
+  docs:
+    pathz: x

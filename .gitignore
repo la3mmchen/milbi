@@ -1,11 +1,3 @@
-milbi/vendor/*
-!milbi/vendor/.gitkeep
-milbi/bin/*
-!milbi/bin/.gitkeep
-milbi/tests/files/resticrepo/*
-!milbi/tests/files/resticrepo/.gitkeep
-milbi/tests/files/resticrepo-copy/*
-!milbi/tests/files/resticrepo-copy/.gitkeep
-milbi/tests/files/resticrepo-copy-2/*
-!milbi/tests/files/resticrepo-copy-2/.gitkeep
+.DS_Store
+bin/
 dist/
