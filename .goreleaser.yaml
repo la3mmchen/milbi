@@ -11,8 +11,10 @@ builds:
       - CGO_ENABLED=0
     goos:
       - linux
-      - windows
       - darwin
+    goarch:
+      - amd64
+      - arm64
     main: ./cmd/milbi
     ldflags:
       - -s -w -X main.version={{.Version}} -X main.commit={{.ShortCommit}} -X main.date={{.Date}}
@@ -26,9 +28,9 @@ archives:
       {{- else if eq .Arch "386" }}i386
       {{- else }}{{ .Arch }}{{ end }}
       {{- if .Arm }}v{{ .Arm }}{{ end }}
-    format_overrides:
-      - goos: windows
-        format: zip
+
+checksum:
+  name_template: checksums.txt
 
 changelog:
   sort: asc
