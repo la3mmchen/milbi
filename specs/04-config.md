@@ -6,7 +6,8 @@
 - Decoding is strict: unknown fields are errors.
 - `~` and `$VARS` in local paths are expanded. Relative paths resolve against the config file's directory.
 - **Repositories** are shared: they are defined once and several backups reference them by name in `to`.
-  A sync's `to` is an inline rsync target (a local path or `host:path`), not a reference.
+  A sync's `to` is an inline target, not a reference: a local path or `host:path` (rsync), or
+  `b2://bucket/path` (Backblaze, plain files via the `b2` CLI, see 06).
 - Retention: a backup's `retention` replaces the default one; its `excludes` are added on top of the defaults.
 
 ```yaml
@@ -43,11 +44,17 @@ syncs:
     from: ~/Pictures/
     to: nas.local:/volume1/mirror/photos/
     delete: false
+
+  photos-b2:
+    from: ~/Pictures/
+    to: b2://my-photos/laptop
+    b2_key_id: env:B2_KEY_ID
+    b2_key: file:~/.config/milbi/secrets/b2-app-key
 ```
 
 ## Secrets
 
-`password` and every `env` value must be a reference:
+`password`, every `env` value and a sync's `b2_key_id` / `b2_key` must be a reference:
 
 - `file:<path>` reads the file and trims the trailing newline. milbi warns if the file mode is broader than 0600.
 - `env:<VAR>` reads the variable from milbi's own environment.
@@ -60,6 +67,8 @@ A plain literal value is a config error.
   with it, the directory itself without); path cleaning must not strip it.
 - A sync `to` of the form `host:path` is remote: it is never `~`-expanded or resolved against the
   config directory.
+- A sync `to` starting with `b2://` is a Backblaze target and is left unchanged. Any other URL-like
+  target (`s3:`, `rclone:`, `<scheme>://`) is not supported yet; a future backend allows its own prefix.
 
 ## Validation (`milbi config validate`)
 
@@ -75,6 +84,8 @@ These are errors:
   (`forget` would remove every snapshot).
 - An `env` key is not a valid variable name, or sets `RESTIC_PASSWORD*` (the password comes from `password`).
 - A secret uses a literal value or an unknown scheme.
+- A sync `to` is URL-like but not `b2://` ("not supported yet"), or a `b2://` target has no bucket.
+- A `b2://` sync lacks `b2_key_id` or `b2_key`, or a non-`b2://` sync sets either of them.
 
 A local `from` path that doesn't exist is a warning, not an error (external volumes may be unmounted).
 
@@ -86,4 +97,5 @@ the backups with their repositories and the syncs with their targets.
 - [ ] The example above validates, with exit code 0.
 - [ ] Each error case above produces a clear message and exit code 2.
 - [ ] An unknown field such as `pathz:` is rejected with its line number.
-- [ ] A sync `from` with a trailing slash keeps it after loading; a `host:path` target is left unchanged.
+- [ ] A sync `from` with a trailing slash keeps it after loading; a `host:path` or `b2://` target is left unchanged.
+- [ ] `to: s3:https://…` on a sync is rejected with exit code 2; a `b2://` sync without `b2_key` too.
