@@ -146,7 +146,34 @@ func Load(path string) (*Config, []string, error) {
 	if err != nil {
 		return nil, nil, &Error{Problems: []Problem{{Msg: err.Error()}}}
 	}
-	return Parse(data, dir)
+	c, warns, err := Parse(data, dir)
+	if c != nil && c.hasLiteralSecret() {
+		if info, serr := os.Stat(path); serr == nil && info.Mode().Perm()&0o077 != 0 {
+			warns = append(warns, fmt.Sprintf("config %s holds plain-text secrets and has mode %04o, broader than 0600", path, info.Mode().Perm()))
+		}
+	}
+	return c, warns, err
+}
+
+// hasLiteralSecret reports whether any secret in the config is plain text rather than a file: or env: reference.
+func (c *Config) hasLiteralSecret() bool {
+	var secrets []string
+	for _, r := range c.Repositories {
+		secrets = append(secrets, r.Password)
+		for _, v := range r.Env {
+			secrets = append(secrets, v)
+		}
+	}
+	for _, s := range c.Syncs {
+		secrets = append(secrets, s.B2KeyID, s.B2Key)
+	}
+	for _, s := range secrets {
+		scheme, _, _ := strings.Cut(s, ":")
+		if s != "" && scheme != "file" && scheme != "env" {
+			return true
+		}
+	}
+	return false
 }
 
 // Parse decodes strictly, expands local paths against dir and validates.

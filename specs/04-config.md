@@ -54,12 +54,12 @@ syncs:
 
 ## Secrets
 
-`password`, every `env` value and a sync's `b2_key_id` / `b2_key` must be a reference:
+`password`, every `env` value and a sync's `b2_key_id` / `b2_key` are either a reference or plain text:
 
 - `file:<path>` reads the file and trims the trailing newline. milbi warns if the file mode is broader than 0600.
 - `env:<VAR>` reads the variable from milbi's own environment.
-
-A plain literal value is a config error.
+- Any other value is used as is. When the config holds such a plain-text secret, milbi warns if the
+  config file's mode is broader than 0600.
 
 ## Paths
 

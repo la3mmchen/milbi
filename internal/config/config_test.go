@@ -144,6 +144,50 @@ func TestLoad(t *testing.T) {
 	}
 }
 
+func TestLoadPlainSecretMode(t *testing.T) {
+	dir := t.TempDir()
+	tests := []struct {
+		name, keyID string
+		mode        os.FileMode
+		want        bool
+	}{
+		{"literal, 0644", "KEYID", 0o644, true},
+		{"literal, 0600", "KEYID", 0o600, false},
+		{"env ref, 0644", "env:B2_ID", 0o644, false},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			p := filepath.Join(dir, "c.yaml")
+			data := "version: 1\nsyncs:\n  s:\n    from: data/\n    to: b2://bucket/x\n    b2_key_id: " + tt.keyID + "\n    b2_key: env:B2_KEY\n"
+			if err := os.WriteFile(p, []byte(data), 0o600); err != nil {
+				t.Fatal(err)
+			}
+			if err := os.Chmod(p, tt.mode); err != nil {
+				t.Fatal(err)
+			}
+			_, warns, err := Load(p)
+			if err != nil {
+				t.Fatal(err)
+			}
+			got := strings.Contains(strings.Join(warns, "\n"), "plain-text secrets")
+			if got != tt.want {
+				t.Errorf("warnings = %v, want plain-text warning %v", warns, tt.want)
+			}
+		})
+	}
+}
+
+func TestHasLiteralSecret(t *testing.T) {
+	c := &Config{Repositories: map[string]Repository{"r": {Password: "file:pw", Env: map[string]string{"A": "plain"}}}}
+	if !c.hasLiteralSecret() {
+		t.Error("literal env value not detected")
+	}
+	c.Repositories["r"] = Repository{Password: "env:PW"}
+	if c.hasLiteralSecret() {
+		t.Error("refs reported as literal")
+	}
+}
+
 func TestPath(t *testing.T) {
 	t.Setenv("HOME", "/home/me")
 	t.Setenv("MILBI_CONFIG", "")
