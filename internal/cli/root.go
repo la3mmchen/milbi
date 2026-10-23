@@ -13,6 +13,7 @@ import (
 const (
 	ExitOK      = 0
 	ExitFailure = 1
+	ExitConfig  = 2
 	ExitMissing = 3
 )
 
@@ -58,6 +59,8 @@ func newRootCmd(info BuildInfo, e env, stdout, stderr io.Writer) *cobra.Command 
 	}
 	root.SetOut(stdout)
 	root.SetErr(stderr)
-	root.AddCommand(newVersionCmd(info), newDoctorCmd(e))
+	var configPath string
+	root.PersistentFlags().StringVar(&configPath, "config", "", "config file (default $MILBI_CONFIG or ~/.config/milbi/config.yaml)")
+	root.AddCommand(newVersionCmd(info), newDoctorCmd(e), newConfigCmd(&configPath))
 	return root
 }
