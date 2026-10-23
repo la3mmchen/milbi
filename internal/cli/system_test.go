@@ -56,7 +56,7 @@ func TestSystemEnvVersion(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got, err := systemEnv{}.Version(writeScript(t, tt.body))
+			got, err := systemEnv{}.Version(writeScript(t, tt.body), "--version")
 			if (err != nil) != tt.wantErr {
 				t.Fatalf("err = %v, wantErr %v", err, tt.wantErr)
 			}
@@ -67,8 +67,15 @@ func TestSystemEnvVersion(t *testing.T) {
 	}
 }
 
+func TestSystemEnvVersionPassesArg(t *testing.T) {
+	got, err := systemEnv{}.Version(writeScript(t, `echo "args: $*"`), "version")
+	if err != nil || got != "args: version" {
+		t.Errorf("got %q, err %v", got, err)
+	}
+}
+
 func TestSystemEnvVersionNotExecutable(t *testing.T) {
-	if _, err := (systemEnv{}).Version(filepath.Join(t.TempDir(), "missing")); err == nil {
+	if _, err := (systemEnv{}).Version(filepath.Join(t.TempDir(), "missing"), "--version"); err == nil {
 		t.Error("expected an error for a missing binary")
 	}
 }

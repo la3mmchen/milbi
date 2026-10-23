@@ -11,16 +11,23 @@ import (
 // env abstracts PATH lookup and process execution so doctor can be tested without the real tools.
 type env interface {
 	LookPath(name string) (string, error)
-	// Version runs `<path> --version` and returns the first line of its output.
-	Version(path string) (string, error)
+	// Version runs `<path> <arg>` and returns the first line of its output.
+	Version(path, arg string) (string, error)
+}
+
+// doctorTools lists the required binaries with the argument that prints their version
+// (restic has a `version` subcommand and rejects `--version`).
+var doctorTools = []struct{ name, versionArg string }{
+	{"restic", "version"},
+	{"rsync", "--version"},
 }
 
 type systemEnv struct{}
 
 func (systemEnv) LookPath(name string) (string, error) { return exec.LookPath(name) }
 
-func (systemEnv) Version(path string) (string, error) {
-	out, err := exec.Command(path, "--version").CombinedOutput()
+func (systemEnv) Version(path, arg string) (string, error) {
+	out, err := exec.Command(path, arg).CombinedOutput()
 	line, _, _ := strings.Cut(strings.TrimSpace(string(out)), "\n")
 	if err != nil && line == "" {
 		return "", err
@@ -42,14 +49,15 @@ func newDoctorCmd(e env) *cobra.Command {
 func runDoctor(e env, cmd *cobra.Command) error {
 	out := cmd.OutOrStdout()
 	var missing []string
-	for _, tool := range []string{"restic", "rsync"} {
+	for _, t := range doctorTools {
+		tool := t.name
 		path, err := e.LookPath(tool)
 		if err != nil {
 			_, _ = fmt.Fprintf(out, "%-6s MISSING (not found on PATH)\n", tool)
 			missing = append(missing, tool)
 			continue
 		}
-		ver, err := e.Version(path)
+		ver, err := e.Version(path, t.versionArg)
 		if err != nil {
 			ver = "version unknown: " + err.Error()
 		}

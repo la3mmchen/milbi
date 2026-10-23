@@ -7,6 +7,7 @@ stdout 'warning: rsync is openrsync'
 
 -- bin/restic --
 #!/bin/sh
+[ "$1" = version ] || exit 1
 echo "restic 0.17.0 fake"
 -- bin/rsync --
 #!/bin/sh

@@ -18,7 +18,7 @@
 
 ## Acceptance criteria
 
-- [ ] A pull request with a failing test shows a red CI check.
+- [X] A pull request with a failing test shows a red CI check.
 - [ ] Pushing tag `v0.1.0` creates a GitHub Release with four archives and a checksums file.
 - [ ] A downloaded binary prints `v0.1.0` from `milbi version`.
 - [ ] A failing test on the tag prevents the release from being created.

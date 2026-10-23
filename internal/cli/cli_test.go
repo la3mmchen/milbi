@@ -19,7 +19,7 @@ func (f fakeEnv) LookPath(name string) (string, error) {
 	return "", errors.New("not found")
 }
 
-func (f fakeEnv) Version(path string) (string, error) {
+func (f fakeEnv) Version(path, _ string) (string, error) {
 	if v, ok := f.versions[path]; ok {
 		return v, nil
 	}

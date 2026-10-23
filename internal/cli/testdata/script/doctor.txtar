@@ -10,7 +10,10 @@ stdout 'rsync  version 3.3.0 fake'
 
 -- bin/restic --
 #!/bin/sh
+# like the real restic: only the `version` subcommand exists, `--version` is an error
+[ "$1" = version ] || { echo "unknown flag: $1" >&2; exit 1; }
 echo "restic 0.17.0 fake"
 -- bin/rsync --
 #!/bin/sh
+[ "$1" = --version ] || exit 1
 echo "rsync  version 3.3.0 fake"

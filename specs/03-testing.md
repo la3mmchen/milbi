@@ -18,6 +18,6 @@
 
 ## Acceptance criteria
 
-- [ ] `task test` passes and prints coverage per package.
-- [ ] CI fails if any package drops below 85%.
-- [ ] `task test:integration` passes on a machine with restic and rsync installed.
+- [X] `task test` passes and prints coverage per package.
+- [X] CI fails if any package drops below 85%.
+- [X] `task test:integration` passes on a machine with restic and rsync installed.
