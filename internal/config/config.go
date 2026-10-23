@@ -54,11 +54,39 @@ type Backup struct {
 	Retention Retention `yaml:"retention"`
 }
 
-// Sync is an rsync job; To is an inline rsync target.
+// Sync is a plain-file mirror: an rsync job, or a `b2 sync` when To starts with B2Prefix.
+// B2KeyID and B2Key are secret references, set only on b2 syncs.
 type Sync struct {
-	From   string `yaml:"from"`
-	To     string `yaml:"to"`
-	Delete bool   `yaml:"delete"`
+	From    string `yaml:"from"`
+	To      string `yaml:"to"`
+	Delete  bool   `yaml:"delete"`
+	B2KeyID string `yaml:"b2_key_id"`
+	B2Key   string `yaml:"b2_key"`
+}
+
+// B2Prefix marks a sync target in Backblaze B2.
+const B2Prefix = "b2://"
+
+// IsB2 reports whether the sync mirrors into Backblaze B2.
+func (s Sync) IsB2() bool { return strings.HasPrefix(s.To, B2Prefix) }
+
+// urlSchemes are tool prefixes that look like `host:path` but name a backend milbi does not support.
+var urlSchemes = []string{"s3", "b2", "gs", "azure", "swift", "rest", "rclone", "sftp"}
+
+// isUnsupportedURL reports whether a sync target is URL-like but not a b2:// target.
+func isUnsupportedURL(to string) bool {
+	if strings.HasPrefix(to, B2Prefix) {
+		return false
+	}
+	if strings.Contains(to, "://") {
+		return true
+	}
+	for _, s := range urlSchemes {
+		if strings.HasPrefix(to, s+":") {
+			return true
+		}
+	}
+	return false
 }
 
 // Problem is one validation error, with the line it refers to (0 if unknown).
@@ -289,8 +317,28 @@ func (c *Config) validate(doc *yaml.Node) []Problem {
 		if s.From == "" {
 			add(line, "sync %s: from is missing", name)
 		}
-		if s.To == "" {
+		switch {
+		case s.To == "":
 			add(line, "sync %s: to is missing", name)
+		case s.IsB2():
+			if bucket, _, _ := strings.Cut(strings.TrimPrefix(s.To, B2Prefix), "/"); bucket == "" {
+				add(lineOf(doc, "syncs", name, "to"), "sync %s: b2 target has no bucket", name)
+			}
+		case isUnsupportedURL(s.To):
+			add(lineOf(doc, "syncs", name, "to"), "sync %s: target %q is not supported yet (only b2:// and rsync targets)", name, s.To)
+		}
+		keys := []struct{ field, ref string }{{"b2_key_id", s.B2KeyID}, {"b2_key", s.B2Key}}
+		for _, k := range keys {
+			switch {
+			case s.IsB2() && k.ref == "":
+				add(line, "sync %s: %s is missing (required for b2:// targets)", name, k.field)
+			case !s.IsB2() && k.ref != "":
+				add(lineOf(doc, "syncs", name, k.field), "sync %s: %s is only allowed on b2:// targets", name, k.field)
+			case k.ref != "":
+				if msg := checkSecret(k.ref); msg != "" {
+					add(lineOf(doc, "syncs", name, k.field), "sync %s: %s %s", name, k.field, msg)
+				}
+			}
 		}
 	}
 	return ps
@@ -344,26 +392,26 @@ func keepsNothing(r Retention) bool {
 	return true
 }
 
-// checkSecret returns why a secret reference is invalid, or "". It never echoes the value.
+// checkSecret returns why a secret is invalid, or "". A value without a file: or env: prefix is a
+// plain-text literal and is allowed. It never echoes the value.
 func checkSecret(ref string) string {
 	scheme, rest, ok := strings.Cut(ref, ":")
-	switch {
-	case !ok || strings.ContainsAny(scheme, " /"):
-		return "must be a reference (file:<path> or env:<VAR>), not a literal"
-	case scheme != "file" && scheme != "env":
-		return fmt.Sprintf("uses unknown scheme %q (use file: or env:)", scheme)
-	case rest == "":
+	if ok && (scheme == "file" || scheme == "env") && rest == "" {
 		return fmt.Sprintf("has an empty %s: reference", scheme)
 	}
 	return ""
 }
 
-// ResolveSecret reads a file: or env: reference. The warning is set when a secret file is readable by others.
+// ResolveSecret reads a file: or env: reference, or returns a literal as is. The warning is set when a
+// secret file is readable by others.
 func ResolveSecret(ref, dir string) (value, warning string, err error) {
 	if msg := checkSecret(ref); msg != "" {
 		return "", "", fmt.Errorf("secret %s", msg)
 	}
 	scheme, rest, _ := strings.Cut(ref, ":")
+	if scheme != "file" && scheme != "env" {
+		return ref, "", nil
+	}
 	if scheme == "env" {
 		v, ok := os.LookupEnv(rest)
 		if !ok {

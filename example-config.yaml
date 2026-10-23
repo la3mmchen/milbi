@@ -1,6 +1,6 @@
 # Example config in the format defined by specs/04-config.md.
 # Default location: ~/.config/milbi/config.yaml (override with --config or MILBI_CONFIG).
-# Secrets are always references (file:<path> or env:<VAR>); literal values are a config error.
+# Secrets are references (file:<path> or env:<VAR>) or plain-text values; keep a file with plain-text secrets at mode 0600.
 # yaml-language-server: $schema=https://raw.githubusercontent.com/la3mmchen/milbi/main/schema/config.json
 version: 1
 

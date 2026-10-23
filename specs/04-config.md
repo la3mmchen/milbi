@@ -83,7 +83,7 @@ These are errors:
 - A backup's effective retention (its own, else the default) keeps nothing: every value is zero or none is set
   (`forget` would remove every snapshot).
 - An `env` key is not a valid variable name, or sets `RESTIC_PASSWORD*` (the password comes from `password`).
-- A secret uses a literal value or an unknown scheme.
+- A secret is an empty `file:` or `env:` reference. Any other value without one of these prefixes is a plain-text literal and is allowed.
 - A sync `to` is URL-like but not `b2://` ("not supported yet"), or a `b2://` target has no bucket.
 - A `b2://` sync lacks `b2_key_id` or `b2_key`, or a non-`b2://` sync sets either of them.
 

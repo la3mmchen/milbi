@@ -75,12 +75,11 @@ func TestParseErrors(t *testing.T) {
 		"bad repo name":   {"version: 1\nrepositories:\n  Bad:\n    url: /r\n    password: env:P\n", `repository name "Bad"`},
 		"no url":          {"version: 1\nrepositories:\n  r:\n    password: env:P\n", "url is missing"},
 		"no password":     {"version: 1\nrepositories:\n  r:\n    url: /r\n", "password is missing"},
-		"literal secret":  {"version: 1\nrepositories:\n  r:\n    url: /r\n    password: hunter2\n", "line 5: repository r: password must be a reference"},
-		"unknown scheme":  {"version: 1\nrepositories:\n  r:\n    url: /r\n    password: vault:x\n", `unknown scheme "vault"`},
+		"empty file ref":  {"version: 1\nrepositories:\n  r:\n    url: /r\n    password: \"file:\"\n", "line 5: repository r: password has an empty file: reference"},
 		"empty ref":       {"version: 1\nrepositories:\n  r:\n    url: /r\n    password: \"env:\"\n", "empty env: reference"},
 		"bad env key":     {"version: 1\n" + base + "    env:\n      1X: env:A\n", "not a valid variable name"},
 		"restic pw env":   {"version: 1\n" + base + "    env:\n      RESTIC_PASSWORD_FILE: env:A\n", "must not set RESTIC_PASSWORD_FILE"},
-		"literal env":     {"version: 1\n" + base + "    env:\n      A: plain\n", "env A must be a reference"},
+		"empty env ref":   {"version: 1\n" + base + "    env:\n      A: \"env:\"\n", "env A has an empty env: reference"},
 		"name collision":  {"version: 1\n" + base + "backups:\n  x:\n    from: [/a]\n    to: [r]\n    retention: {last: 1}\nsyncs:\n  x:\n    from: /a\n    to: /b\n", "name is also used by a sync"},
 		"no from":         {"version: 1\n" + base + "backups:\n  x:\n    to: [r]\n    retention: {last: 1}\n", "from is missing"},
 		"no to":           {"version: 1\n" + base + "backups:\n  x:\n    from: [/a]\n    retention: {last: 1}\n", "to is missing"},
@@ -94,6 +93,12 @@ func TestParseErrors(t *testing.T) {
 		"sync no to":      {"version: 1\nsyncs:\n  s:\n    from: /a\n", "sync s: to is missing"},
 		"bad sync name":   {"version: 1\nsyncs:\n  s_1:\n    from: /a\n    to: /b\n", `sync name "s_1"`},
 		"bad backup name": {"version: 1\n" + base + "backups:\n  X:\n    from: [/a]\n    to: [r]\n    retention: {last: 1}\n", `backup name "X"`},
+		"s3 sync":         {"version: 1\nsyncs:\n  s:\n    from: /a\n    to: s3:https://x/b\n", "line 5: sync s: target \"s3:https://x/b\" is not supported yet"},
+		"scheme sync":     {"version: 1\nsyncs:\n  s:\n    from: /a\n    to: sftp://h/p\n", "is not supported yet"},
+		"b2 no bucket":    {"version: 1\nsyncs:\n  s:\n    from: /a\n    to: b2:///p\n    b2_key_id: env:I\n    b2_key: env:K\n", "b2 target has no bucket"},
+		"b2 no key":       {"version: 1\nsyncs:\n  s:\n    from: /a\n    to: b2://bkt/p\n    b2_key_id: env:I\n", "sync s: b2_key is missing"},
+		"b2 empty key":    {"version: 1\nsyncs:\n  s:\n    from: /a\n    to: b2://bkt/p\n    b2_key_id: env:I\n    b2_key: \"file:\"\n", "line 7: sync s: b2_key has an empty file: reference"},
+		"b2 key on rsync": {"version: 1\nsyncs:\n  s:\n    from: /a\n    to: /b\n    b2_key_id: env:I\n", "b2_key_id is only allowed on b2:// targets"},
 	}
 	for name, tc := range cases {
 		t.Run(name, func(t *testing.T) {
@@ -201,7 +206,10 @@ func TestResolveSecret(t *testing.T) {
 	if _, _, err := ResolveSecret("env:MILBI_TEST_UNSET", dir); err == nil {
 		t.Error("unset env: no error")
 	}
-	if _, _, err := ResolveSecret("literal", dir); err == nil {
-		t.Error("literal: no error")
+	if v, w, err := ResolveSecret("hunter2", dir); err != nil || v != "hunter2" || w != "" {
+		t.Errorf("literal: %q %q %v", v, w, err)
+	}
+	if _, _, err := ResolveSecret("env:", dir); err == nil {
+		t.Error("empty env: no error")
 	}
 }
