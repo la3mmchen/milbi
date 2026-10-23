@@ -1,0 +1,8 @@
+exec milbi version
+stdout 'milbi test'
+stdout 'commit: abc'
+stdout 'date: 2026-01-01'
+! stderr .
+
+! exec milbi nope
+stderr 'unknown command'

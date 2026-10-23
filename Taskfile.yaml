@@ -28,12 +28,12 @@ tasks:
       - ./{{.BIN}} version
 
   test:
-    desc: unit tests
+    desc: unit tests with coverage per package; fails below 85% (cmd/milbi excluded)
     cmds:
-      - go test -cover ./...
+      - sh scripts/covergate.sh
 
   test:integration:
-    desc: CLI tests against fake restic/rsync (arrives with spec 03)
+    desc: integration tests against real restic and rsync (skipped when missing)
     cmds:
       - go test -tags integration ./...
 
