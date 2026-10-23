@@ -45,7 +45,7 @@ func runDoctor(e env, cmd *cobra.Command) error {
 	for _, tool := range []string{"restic", "rsync"} {
 		path, err := e.LookPath(tool)
 		if err != nil {
-			fmt.Fprintf(out, "%-6s MISSING (not found on PATH)\n", tool)
+			_, _ = fmt.Fprintf(out, "%-6s MISSING (not found on PATH)\n", tool)
 			missing = append(missing, tool)
 			continue
 		}
@@ -53,9 +53,9 @@ func runDoctor(e env, cmd *cobra.Command) error {
 		if err != nil {
 			ver = "version unknown: " + err.Error()
 		}
-		fmt.Fprintf(out, "%-6s %s (%s)\n", tool, ver, path)
+		_, _ = fmt.Fprintf(out, "%-6s %s (%s)\n", tool, ver, path)
 		if tool == "rsync" && strings.Contains(strings.ToLower(ver), "openrsync") {
-			fmt.Fprintln(out, "warning: rsync is openrsync (macOS default); some options are unsupported, install rsync 3.x")
+			_, _ = fmt.Fprintln(out, "warning: rsync is openrsync (macOS default); some options are unsupported, install rsync 3.x")
 		}
 	}
 	if len(missing) > 0 {

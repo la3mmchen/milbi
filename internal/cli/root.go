@@ -41,7 +41,7 @@ func execute(root *cobra.Command, stderr io.Writer) int {
 	if err == nil {
 		return ExitOK
 	}
-	fmt.Fprintln(stderr, "error:", err)
+	_, _ = fmt.Fprintln(stderr, "error:", err)
 	var ee *ExitError
 	if errors.As(err, &ee) {
 		return ee.Code

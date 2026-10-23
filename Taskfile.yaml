@@ -43,6 +43,11 @@ tasks:
       - test -z "$(gofmt -l .)"
       - go vet ./...
 
+  lint:ci:
+    desc: golangci-lint, same as the CI lint job (compiled on first use)
+    cmds:
+      - go run github.com/golangci/golangci-lint/v2/cmd/golangci-lint@latest run ./...
+
   tidy:
     desc: go mod tidy
     cmds:
