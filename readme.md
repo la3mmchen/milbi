@@ -1,62 +1,31 @@
 # milbi
 
-helps to organize backups. with a config. yaml!
+milbi runs [restic](https://restic.net/) backups and rsync syncs on the machine it is installed on, driven by one YAML config. restic and rsync do the actual work; milbi owns config, execution, state and presentation.
 
-I wrote it for myself to get rid of my random backup bash scripts that i had before.
+This is a rewrite from scratch. The design lives in [specs/](specs/README.md) and is implemented spec by spec; a spec is done when its acceptance criteria pass in CI. The previous implementation (config `apiVersion: milbi/v2`) is available under the `2.0.x` tags.
 
-```yaml
-apiVersion: milbi/v2
-kind: repo
-metadata:
-  name: my-backup-repo
-  hostalias: "local"
-spec:
-  passphrase: "iamarandompasswort"
-  generations: 7
-  directory: "./tests/files/resticrepo"
-  excludes:
-    - "*resticrepo*"
-  content:
-    - ./tests/files/backup-folder
-```
+## Status
 
-```bash
-[~] $ milbi snapshot
-Create a snapshot.
-open repository
-lock repository
-using parent snapshot 16f5c660
-load index files
-start scan on [~/./tests/files/backup-folder]
-start backup on [~/./tests/files/backup-folder]
-scan finished in 0.228s: 2 files, 1 B
-(...)
-modified  /Users/alexkoehler/, saved in 0.008s (0 B added, 0 B stored, 0 B metadata)
-modified  /Users/, saved in 0.014s (0 B added, 0 B stored, 306 B metadata)
+Implemented so far:
 
-Files:           0 new,     0 changed,     2 unmodified
-Dirs:            0 new,     2 changed,     8 unmodified
-Data Blobs:      0 new
-Tree Blobs:      2 new
-Added to the repository: 753 B (608 B stored)
+- `milbi version` prints version, commit and build date.
+- `milbi doctor` checks that `restic` and `rsync` are on `PATH`, prints their versions and warns when `rsync` is openrsync (the macOS default). Exit code 3 means a required binary is missing.
 
-processed 2 files, 1 B in 0:00
-snapshot 5e9a299a saved
-```
+The config format, backup and sync jobs, state files and the terminal UI are specified in [specs/04](specs/04-config.md) to [specs/07](specs/07-ui.md) and not implemented yet. [example-config.yaml](example-config.yaml) shows the target format.
 
-Milbi works with [restic](https://restic.net/) at the moment.
+## Requirements
 
-## development stuff
+- restic and rsync 3.x on `PATH`. They are never bundled. On macOS install rsync with Homebrew; the bundled openrsync lacks options milbi needs.
+- Go (version in `go.mod`) and [Task](https://taskfile.dev) to build from source.
 
-this repository contains a Taskfile that helps with all the different tasks:
+## Development
 
 ```bash
-$ task
-task: Available tasks for this project:
-* dev:lint:             run lint
-* reqs:                 check requirements
-* test:clitests:        run clitests
-* test:prepare:         prepare for tests
-* test:unittests:       run unittests
-* tests:                run all tests
+task build             # build bin/milbi with version info from git
+task test              # unit tests with per-package coverage gate (85%)
+task test:integration  # against real restic and rsync, skipped when missing
+task lint              # gofmt and go vet
+task lint:ci           # golangci-lint, same version as CI
 ```
+
+Releases are built by GoReleaser from tags matching `v*.*.*`; see [specs/02](specs/02-release.md).

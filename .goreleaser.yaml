@@ -1,10 +1,11 @@
 # vim: set ts=2 sw=2 tw=0 fo=cnqoj
 
-version: 1
+version: 2
 
 before:
   hooks:
-    - go mod tidy
+    # fail the release on an untidy go.mod/go.sum instead of silently rewriting them on the runner
+    - go mod tidy -diff
 
 builds:
   - env:
@@ -16,11 +17,14 @@ builds:
       - amd64
       - arm64
     main: ./cmd/milbi
+    flags:
+      - -trimpath
+    # .Tag keeps the leading "v" (.Version strips it), matching `git describe` in Taskfile.yaml and spec 02.
     ldflags:
-      - -s -w -X main.version={{.Version}} -X main.commit={{.ShortCommit}} -X main.date={{.Date}}
+      - -s -w -X main.version={{.Tag}} -X main.commit={{.ShortCommit}} -X main.date={{.Date}}
 
 archives:
-  - format: tar.gz
+  - formats: [tar.gz]
     name_template: >-
       {{ .ProjectName }}_
       {{- title .Os }}_

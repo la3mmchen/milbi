@@ -29,14 +29,8 @@ func (f fakeEnv) Version(path, _ string) (string, error) {
 func run(t *testing.T, e env, args ...string) (int, string, string) {
 	t.Helper()
 	var stdout, stderr bytes.Buffer
-	root := newRootCmd(BuildInfo{Version: "1.2.3", Commit: "abc", Date: "2026-01-01"}, &stdout, &stderr)
+	root := newRootCmd(BuildInfo{Version: "1.2.3", Commit: "abc", Date: "2026-01-01"}, e, &stdout, &stderr)
 	root.SetArgs(args)
-	for _, c := range root.Commands() {
-		if c.Name() == "doctor" {
-			root.RemoveCommand(c)
-			root.AddCommand(newDoctorCmd(e))
-		}
-	}
 	code := execute(root, &stderr)
 	return code, stdout.String(), stderr.String()
 }

@@ -2,7 +2,7 @@
 
 ## Behaviour
 
-**`.github/workflows/ci.yaml`** runs on every push and pull request:
+**`.github/workflows/ci.yaml`** runs on every pull request and on every push to `main`:
 
 - `golangci-lint`
 - `task test` on `ubuntu-latest` and `macos-latest`

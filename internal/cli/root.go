@@ -33,7 +33,7 @@ func (e *ExitError) Error() string { return e.Msg }
 
 // Execute runs the root command and returns the process exit code.
 func Execute(info BuildInfo, stdout, stderr io.Writer) int {
-	return execute(newRootCmd(info, stdout, stderr), stderr)
+	return execute(newRootCmd(info, systemEnv{}, stdout, stderr), stderr)
 }
 
 func execute(root *cobra.Command, stderr io.Writer) int {
@@ -49,7 +49,7 @@ func execute(root *cobra.Command, stderr io.Writer) int {
 	return ExitFailure
 }
 
-func newRootCmd(info BuildInfo, stdout, stderr io.Writer) *cobra.Command {
+func newRootCmd(info BuildInfo, e env, stdout, stderr io.Writer) *cobra.Command {
 	root := &cobra.Command{
 		Use:           "milbi",
 		Short:         "Run restic backups and rsync syncs from one config",
@@ -58,6 +58,6 @@ func newRootCmd(info BuildInfo, stdout, stderr io.Writer) *cobra.Command {
 	}
 	root.SetOut(stdout)
 	root.SetErr(stderr)
-	root.AddCommand(newVersionCmd(info), newDoctorCmd(systemEnv{}))
+	root.AddCommand(newVersionCmd(info), newDoctorCmd(e))
 	return root
 }

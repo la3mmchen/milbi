@@ -8,32 +8,43 @@
 - **Destinations** (where data goes) and **jobs** (what runs) are separate, so several jobs can share one destination.
 
 ```yaml
+# yaml-language-server: $schema=https://raw.githubusercontent.com/la3mmchen/milbi/main/schema/config.json
 version: 1
 
-destinations:
+defaults:
+  excludes: ["**/node_modules", "**/.terraform", "**/.DS_Store"]
+  retention: { last: 3, daily: 7, weekly: 4, monthly: 12 }
+
+repositories:
+  local:
+    url: /Volumes/Backup/restic
+    password: file:~/.config/milbi/secrets/local
   b2:
-    type: restic
-    repository: s3:https://s3.eu-central-003.backblazeb2.com/my-bucket/laptop
+    url: s3:https://s3.eu-central-003.backblazeb2.com/my-bucket/laptop
     password: file:~/.config/milbi/secrets/b2-repo
     env:
       AWS_ACCESS_KEY_ID: env:B2_KEY_ID
       AWS_SECRET_ACCESS_KEY: file:~/.config/milbi/secrets/b2-app-key
-  nas:
-    type: rsync
-    target: nas.local:/volume1/mirror/
 
-jobs:
+backups:
   documents:
-    kind: backup
-    destination: b2
-    paths: [~/Documents, ~/Projects]
-    excludes: ["**/node_modules"]
-    retention: { last: 3, daily: 7, weekly: 4, monthly: 12 }
+    from: [~/Documents, ~/Projects]
+    to: [local, b2]
+    excludes: ["**/build"]            # added on top of defaults
+    schedule: daily
+
+  configs:
+    from: [~/.config, ~/.ssh]
+    to: [b2]
+    retention: { daily: 30, monthly: 24 }   # replaces the defaults
+    schedule: weekly
+
+syncs:
   photos:
-    kind: sync
-    destination: nas
-    source: ~/Pictures/
+    from: ~/Pictures/
+    to: nas.local:/volume1/mirror/photos/
     delete: false
+    schedule: "0 3 * * *"
 ```
 
 ## Secrets

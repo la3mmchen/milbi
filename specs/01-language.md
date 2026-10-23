@@ -28,6 +28,6 @@ internal/tui/       terminal UI
 
 ## Acceptance criteria
 
-- [ ] `task build` produces a working binary for the host OS/arch.
-- [ ] `milbi version` shows non-empty version, commit, and date in release builds.
-- [ ] `milbi doctor` exits 0 with both tools present, and 3 with restic removed from `PATH`.
+- [X] `task build` produces a working binary for the host OS/arch.
+- [X] `milbi version` shows non-empty version, commit, and date in release builds.
+- [X] `milbi doctor` exits 0 with both tools present, and 3 with restic removed from `PATH`.

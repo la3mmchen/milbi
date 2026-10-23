@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 )
 
@@ -48,17 +49,20 @@ func TestSystemEnvVersion(t *testing.T) {
 		name    string
 		body    string
 		want    string
-		wantErr bool
+		wantErr string // substring of the error, empty means no error
 	}{
-		{"first line only", "printf 'tool 1.0\\nsecond line\\n'", "tool 1.0", false},
-		{"non-zero exit with output", "echo 'tool 2.0'; exit 1", "tool 2.0", false},
-		{"non-zero exit without output", "exit 1", "", true},
+		{"first line only", "printf 'tool 1.0\\nsecond line\\n'", "tool 1.0", ""},
+		{"non-zero exit with output is an error that keeps the first line", "echo 'broken: no libc'; exit 1", "", "broken: no libc"},
+		{"non-zero exit without output", "exit 1", "", "exit status 1"},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			got, err := systemEnv{}.Version(writeScript(t, tt.body), "--version")
-			if (err != nil) != tt.wantErr {
-				t.Fatalf("err = %v, wantErr %v", err, tt.wantErr)
+			if (err != nil) != (tt.wantErr != "") {
+				t.Fatalf("err = %v, wantErr %q", err, tt.wantErr)
+			}
+			if err != nil && !strings.Contains(err.Error(), tt.wantErr) {
+				t.Errorf("err %q lacks %q", err, tt.wantErr)
 			}
 			if got != tt.want {
 				t.Errorf("got %q, want %q", got, tt.want)

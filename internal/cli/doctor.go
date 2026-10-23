@@ -29,7 +29,11 @@ func (systemEnv) LookPath(name string) (string, error) { return exec.LookPath(na
 func (systemEnv) Version(path, arg string) (string, error) {
 	out, err := exec.Command(path, arg).CombinedOutput()
 	line, _, _ := strings.Cut(strings.TrimSpace(string(out)), "\n")
-	if err != nil && line == "" {
+	if err != nil {
+		// A tool that fails its own version command is broken, not versioned; keep its first line for the user.
+		if line != "" {
+			return "", fmt.Errorf("%w: %s", err, line)
+		}
 		return "", err
 	}
 	return line, nil
