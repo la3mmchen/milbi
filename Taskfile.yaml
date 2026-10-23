@@ -2,15 +2,18 @@
 
 version: '3'
 
+vars:
+  BIN: bin/milbi
+  VERSION:
+    sh: git describe --tags --always --dirty
+  COMMIT:
+    sh: git rev-parse --short HEAD
+  DATE:
+    sh: date -u +%Y-%m-%dT%H:%M:%SZ
+  LDFLAGS: -s -w -X main.version={{.VERSION}} -X main.commit={{.COMMIT}} -X main.date={{.DATE}}
+
 env:
-  GIT_COMMIT:
-    sh: git describe --always --long --dirty
-  PROJECT_NAME:
-    sh: basename "$PWD"
-  WORKDIR: "./milbi"
-  PROJECT: la3mmchen
-  EXECUTABLE: bin/milbi
-  BINARY_NAME: milbi
+  CGO_ENABLED: "0"
 
 tasks:
   default:
@@ -18,71 +21,29 @@ tasks:
       - task -l
     silent: true
 
-  fmt:
-    dir: "{{.WORKDIR}}"
-    desc: "lint code"
-    cmds:
-      - go mod vendor
-      - go fmt
-
-  develop:
-    dir: "{{.WORKDIR}}"
-    desc: "build-test"
-    cmds:
-      - task "build"
-      - task "test"
-
   build:
-    dir: "{{.WORKDIR}}"
-    desc: "build"
-    preconditions:
-      - task "fmt"
+    desc: build the binary into bin/milbi
     cmds:
-      - task "build:prepare"
-      - task "build:executable"
-      - task "test:binary"
+      - go build -trimpath -ldflags "{{.LDFLAGS}}" -o {{.BIN}} ./cmd/milbi
+      - ./{{.BIN}} version
 
   test:
-    dir: "{{.WORKDIR}}"
-    desc: "tests"
-    preconditions:
-      - task "build"
+    desc: unit tests
     cmds:
-      - task "test:binary"
-      - task "test:gotest:unittests"
-      - task "test:gotest:clitests"
+      - go test -cover ./...
 
+  test:integration:
+    desc: CLI tests against fake restic/rsync (arrives with spec 03)
+    cmds:
+      - go test -tags integration ./...
 
-  build:prepare:
-    dir: "{{.WORKDIR}}"
-    desc: "prepare build"
+  lint:
+    desc: gofmt and go vet
+    cmds:
+      - test -z "$(gofmt -l .)"
+      - go vet ./...
+
+  tidy:
+    desc: go mod tidy
     cmds:
       - go mod tidy
-      - go mod vendor
-      - go mod verify
-
-  build:executable:
-    dir: "{{.WORKDIR}}"
-    desc: "build binary"
-    cmds:
-      - rm -f ${EXECUTABLE}
-      - go build -o $EXECUTABLE -ldflags "-X main.AppVersion=$GIT_COMMIT" .
-
-  test:binary:
-    dir: "{{.WORKDIR}}"
-    desc: "execute the created binary"
-    cmds:
-      - ./bin/milbi
-
-  test:gotest:unittests:
-    dir: "{{.WORKDIR}}"
-    desc: "execute gotest"
-    cmds:
-      - go test -cover -failfast "./.../app"
-      - go test -cover -failfast "./.../restic"
-
-  test:gotest:clitests:
-    dir: "{{.WORKDIR}}"
-    desc: "execute gotest"
-    cmds:
-      - go test -v -failfast "."

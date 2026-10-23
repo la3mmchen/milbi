@@ -2,6 +2,8 @@ milbi/vendor/*
 !milbi/vendor/.gitkeep
 milbi/bin/*
 !milbi/bin/.gitkeep
+bin/*
+!bin/.gitkeep
 milbi/tests/files/resticrepo/*
 !milbi/tests/files/resticrepo/.gitkeep
 milbi/tests/files/resticrepo-copy/*
