@@ -6,7 +6,7 @@
 
 - `golangci-lint`
 - `task test` on `ubuntu-latest` and `macos-latest`
-- `task test:integration` on `ubuntu-latest`, with restic and rsync installed via apt
+- `task test:e2e` on `ubuntu-latest`, with restic and rsync installed via apt; `MILBI_E2E_REQUIRE_TOOLS=1` makes a missing tool fail the job instead of skipping it
 
 **`.github/workflows/release.yaml`** runs on tags matching `v*.*.*`:
 

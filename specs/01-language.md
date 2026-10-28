@@ -6,7 +6,7 @@
 - Module path: `github.com/la3mmchen/milbi`.
 - Allowed dependencies: `spf13/cobra` (CLI), `charmbracelet/bubbletea`, `bubbles` and `lipgloss` (UI), `go.yaml.in/yaml/v3` (config), `rogpeppe/go-internal/testscript` (CLI tests). Logging uses the standard library's `log/slog`.
 - restic and rsync are **never bundled**. milbi looks them up on `PATH`, unless the config sets an explicit binary path.
-- A `Taskfile.yaml` provides `task build`, `task test`, `task lint`, and `task test:integration`.
+- A `Taskfile.yaml` provides `task build`, `task test`, `task lint`, and `task test:e2e`.
 
 ## Layout
 

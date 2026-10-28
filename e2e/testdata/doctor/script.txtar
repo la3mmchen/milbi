@@ -1,0 +1,4 @@
+# With the real restic and rsync on PATH, doctor reports both versions and exits 0.
+exec milbi doctor
+stdout '^restic .*restic'
+stdout '^rsync '

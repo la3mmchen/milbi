@@ -23,7 +23,7 @@ The config format, backup and sync jobs, state files and the terminal UI are spe
 ```bash
 task build             # build bin/milbi with version info from git
 task test              # unit tests with per-package coverage gate (85%)
-task test:integration  # against real restic and rsync, skipped when missing
+task test:e2e          # end-to-end scenarios against real restic and rsync, skipped when missing
 task lint              # gofmt and go vet
 task lint:ci           # golangci-lint, same version as CI
 ```

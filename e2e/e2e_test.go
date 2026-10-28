@@ -36,6 +36,9 @@ func TestMain(m *testing.M) {
 func TestScenarios(t *testing.T) {
 	for _, tool := range []string{"restic", "rsync"} {
 		if _, err := exec.LookPath(tool); err != nil {
+			if os.Getenv("MILBI_E2E_REQUIRE_TOOLS") != "" {
+				t.Fatalf("%s not installed and MILBI_E2E_REQUIRE_TOOLS is set", tool)
+			}
 			t.Skipf("%s not installed", tool)
 		}
 	}

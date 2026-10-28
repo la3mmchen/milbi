@@ -32,11 +32,6 @@ tasks:
     cmds:
       - sh scripts/covergate.sh
 
-  test:integration:
-    desc: integration tests against real restic and rsync (skipped when missing)
-    cmds:
-      - go test -tags integration ./...
-
   test:e2e:
     desc: end-to-end scenarios in e2e/testdata, built milbi against real restic and rsync (skipped when missing)
     cmds:
