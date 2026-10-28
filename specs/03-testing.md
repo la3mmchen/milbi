@@ -9,6 +9,13 @@
 - **Tests never touch the real home directory or network.** `HOME` and `XDG_*` point to temp dirs.
 - **Integration tests** (build tag `integration`) use a real local restic repo and real rsync in a temp dir, covering init, backup, snapshots, and sync. They skip cleanly when a tool is missing.
 
+## End-to-end
+
+- **End-to-end scenarios** (build tag `e2e`, `task test:e2e`) run the built `milbi` binary against real restic and rsync, as a user would. They skip cleanly when a tool is missing.
+- One folder per scenario in `e2e/testdata/<scenario>/`: `script.txtar` (testscript: commands and expectations) plus its fixtures (`milbi.yaml`, a `files/` source tree), copied into the script's `$WORK`. `HOME` is `$WORK/home`. Folders starting with `_` are shared fixtures, not scenarios.
+- A scenario asserts exit codes and output, then the real outcome: repository contents (restic called directly, for assertions only), the rsync target tree, and the state files under `HOME`.
+- Specs 05–07 each add scenarios that prove their acceptance criteria; b2 scenarios skip unless `MILBI_E2E_B2_*` env vars are set.
+
 ## What must be asserted
 
 - The exact argv passed to restic and rsync for every job type and option.
@@ -21,3 +28,4 @@
 - [X] `task test` passes and prints coverage per package.
 - [X] CI fails if any package drops below 85%.
 - [X] `task test:integration` passes on a machine with restic and rsync installed.
+- [ ] `task test:e2e` passes on a machine with restic and rsync installed and runs every scenario folder.

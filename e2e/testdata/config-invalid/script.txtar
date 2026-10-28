@@ -1,0 +1,4 @@
+# An unknown field is a config error: exit 2, the message names the line.
+! exec milbi config validate --config milbi.yaml
+stderr 'line 4'
+stderr 'pathz'

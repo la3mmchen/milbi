@@ -37,6 +37,11 @@ tasks:
     cmds:
       - go test -tags integration ./...
 
+  test:e2e:
+    desc: end-to-end scenarios in e2e/testdata, built milbi against real restic and rsync (skipped when missing)
+    cmds:
+      - go test -tags e2e -count=1 ./e2e/...
+
   lint:
     desc: gofmt and go vet
     cmds:
