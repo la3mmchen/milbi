@@ -28,6 +28,8 @@ folder's contents, while `~/Pictures` syncs the folder itself. The README docume
 - `--delete` is added **only** when `delete: true`.
 - Credentials go only into the child environment as `B2_APPLICATION_KEY_ID` / `B2_APPLICATION_KEY`,
   never into argv, logs or state; milbi never runs `b2 account authorize`.
+- Every `b2` call also gets `B2_ACCOUNT_INFO` pointing at a fresh per-run temp file, removed
+  afterwards (also on failure), so b2 never reads or leaves a login in `~/.b2_account_info`.
 - `excludes` globs are translated to `--exclude-regex`; a glob that can't be translated is a config error.
 - milbi reads the uploaded / deleted counts from `b2 sync`'s output where it reports them.
 - `b2` is optional: if it is not on PATH, a `b2://` job fails before starting with a clear error
