@@ -33,9 +33,10 @@ tasks:
       - sh scripts/covergate.sh
 
   test:e2e:
-    desc: end-to-end scenarios in e2e/testdata, built milbi against real restic and rsync (skipped when missing)
+    desc: end-to-end scenarios in e2e/testdata, built milbi against real restic and rsync (skipped when missing); prints every step
     cmds:
-      - go test -tags e2e -count=1 ./e2e/...
+      # -v shows each scenario's commands, comments and tool output, also when it passes
+      - go test -tags e2e -count=1 -v ./e2e/...
 
   lint:
     desc: gofmt and go vet

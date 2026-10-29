@@ -6,6 +6,8 @@ import (
 	"path/filepath"
 	"strings"
 	"testing"
+
+	"go.yaml.in/yaml/v3"
 )
 
 const example = `version: 1
@@ -114,6 +116,24 @@ func TestParseErrors(t *testing.T) {
 				t.Error("error echoes the secret")
 			}
 		})
+	}
+}
+
+func TestBackupNames(t *testing.T) {
+	src := "version: 1\nrepositories:\n  r: {url: /r, password: x}\nbackups:\n  zeta: {from: [/a], to: [r], retention: {last: 1}}\n  alpha: {from: [/b], to: [r], retention: {last: 1}}\n"
+	c, _, err := Parse([]byte(src), "/")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got := strings.Join(c.BackupNames(), ","); got != "zeta,alpha" {
+		t.Errorf("config order: got %s", got)
+	}
+	c.backupOrder = nil
+	if got := strings.Join(c.BackupNames(), ","); got != "alpha,zeta" {
+		t.Errorf("fallback: got %s", got)
+	}
+	if keysOf(&yaml.Node{Kind: yaml.ScalarNode}, "backups") != nil {
+		t.Error("keysOf on a scalar: want nil")
 	}
 }
 

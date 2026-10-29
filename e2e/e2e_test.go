@@ -56,7 +56,11 @@ func TestScenarios(t *testing.T) {
 				Dir: dir,
 				Setup: func(env *testscript.Env) error {
 					env.Setenv("PATH", binDir+string(os.PathListSeparator)+env.Getenv("PATH"))
-					env.Setenv("HOME", filepath.Join(env.WorkDir, "home"))
+					home := filepath.Join(env.WorkDir, "home")
+					env.Setenv("HOME", home)
+					// state lands in $HOME/.local/state/milbi, restic's cache in $HOME/.cache
+					env.Setenv("XDG_STATE_HOME", "")
+					env.Setenv("XDG_CACHE_HOME", filepath.Join(home, ".cache"))
 					return copyFixtures(dir, env.WorkDir)
 				},
 			})

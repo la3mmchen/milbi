@@ -22,12 +22,9 @@ func newConfigCmd(path *string) *cobra.Command {
 			if err != nil {
 				return &ExitError{Code: ExitConfig, Msg: err.Error()}
 			}
-			c, warnings, err := config.Load(p)
-			for _, w := range warnings {
-				_, _ = fmt.Fprintln(cmd.ErrOrStderr(), "warning:", w)
-			}
+			c, err := loadConfig(p, cmd.ErrOrStderr())
 			if err != nil {
-				return &ExitError{Code: ExitConfig, Msg: err.Error()}
+				return err
 			}
 			out := cmd.OutOrStdout()
 			_, _ = fmt.Fprintf(out, "config %s is valid\n", p)

@@ -1,0 +1,110 @@
+# backup commands against a fake restic that records argv and the RESTIC_* env
+chmod 755 bin/restic
+chmod 600 milbi.yaml
+env PATH=$WORK/bin:$PATH
+mkdir src/docs
+
+# init: runs restic init; refuses an initialized repo; unknown repo is a config error
+exec milbi --config milbi.yaml init local
+stdout 'created restic repository'
+env FAKE_CAT_EXIT=0
+! exec milbi --config milbi.yaml init local
+stderr 'already initialized'
+env FAKE_CAT_EXIT=
+! exec milbi --config milbi.yaml init nope
+stderr 'repository "nope" is not in the config'
+
+# run: backup then forget, scoped by the job tag; secrets only in the env
+rm argv
+exec milbi --config milbi.yaml run docs
+stdout '^docs: success$'
+stdout 'local: snapshot 01234567, 2 new, 1 changed, 2.0 KiB added'
+cmpenv argv want-argv
+grep 'RESTIC_PASSWORD=s3cret-pw' env
+! grep s3cret-pw argv
+! grep s3cret-pw home/.local/state/milbi/status/docs.json
+grep '"status": "success"' home/.local/state/milbi/status/docs.json
+exec cat home/.local/state/milbi/status/docs.json
+! stdout s3cret-pw
+stdout '"lastSuccessAt"'
+
+# exit codes: warning 0, failure 1
+env FAKE_BACKUP_EXIT=3
+exec milbi --config milbi.yaml run docs
+stdout '^docs: warning$'
+env FAKE_BACKUP_EXIT=1
+! exec milbi --config milbi.yaml run --all
+stdout '^docs: failed$'
+stdout '^pics: failed$'
+env FAKE_BACKUP_EXIT=
+
+# a second run of a busy job is skipped with exit 4
+env FAKE_SLEEP=2
+exec milbi --config milbi.yaml run docs &
+exec sleep 1
+! exec milbi --config milbi.yaml run docs
+stdout '^docs: skipped$'
+stderr 'skipped \(locked\)'
+wait
+env FAKE_SLEEP=
+
+# dry run prints commands and runs nothing
+rm argv
+exec milbi --config milbi.yaml run --dry-run --all
+stdout '^docs \[local\]: restic backup --json --tag milbi --tag job:docs --exclude \*.tmp '
+stdout '^pics \[local\]: restic forget --tag job:pics --group-by host,tags --keep-last 1$'
+! exists argv
+
+# usage and config errors exit 2 (missing restic, exit 3, is TestRunMissingRestic)
+! exec milbi --config milbi.yaml run
+stderr 'name one or more jobs, or use --all'
+! exec milbi --config milbi.yaml run docs --all
+! exec milbi --config milbi.yaml run mirror
+stderr 'mirror is a sync'
+! exec milbi --config milbi.yaml run nope
+stderr 'backup "nope" is not in the config'
+! exec milbi --config missing.yaml run docs
+stderr 'invalid config'
+
+# snapshots and prune
+exec milbi --config milbi.yaml snapshots docs
+stdout 'repository local:'
+stdout 'fake snapshots'
+! exec milbi --config milbi.yaml snapshots nope
+env FAKE_SNAPSHOTS_EXIT=1
+! exec milbi --config milbi.yaml snapshots docs
+stderr 'snapshots: repository local'
+exec milbi --config milbi.yaml prune local
+stdout 'pruned'
+! exec milbi --config milbi.yaml prune nope
+env FAKE_PRUNE_EXIT=1
+! exec milbi --config milbi.yaml prune local
+stderr 'prune: exit status 1'
+
+-- milbi.yaml --
+version: 1
+repositories:
+  local: {url: repo, password: s3cret-pw}
+backups:
+  docs: {from: [src/docs], to: [local], excludes: ["*.tmp"], retention: {last: 3}}
+  pics: {from: [src/docs], to: [local], retention: {last: 1}}
+syncs:
+  mirror: {from: src/docs, to: /tmp/mirror-target}
+-- want-argv --
+backup --json --tag milbi --tag job:docs --exclude *.tmp $WORK/src/docs
+forget --tag job:docs --group-by host,tags --keep-last 3
+-- bin/restic --
+#!/bin/sh
+echo "$*" >> "$WORK/argv"
+env | grep '^RESTIC_' >> "$WORK/env"
+case "$1" in
+backup)
+  [ -n "$FAKE_SLEEP" ] && sleep "$FAKE_SLEEP"
+  echo '{"message_type":"summary","files_new":2,"files_changed":1,"data_added":2048,"snapshot_id":"0123456789abcdef"}'
+  exit ${FAKE_BACKUP_EXIT:-0} ;;
+cat) exit ${FAKE_CAT_EXIT:-1} ;;
+init) echo "created restic repository" ;;
+snapshots) echo "fake snapshots"; exit ${FAKE_SNAPSHOTS_EXIT:-0} ;;
+prune) echo "pruned"; exit ${FAKE_PRUNE_EXIT:-0} ;;
+esac
+exit 0

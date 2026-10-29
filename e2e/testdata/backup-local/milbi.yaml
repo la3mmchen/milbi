@@ -1,0 +1,11 @@
+version: 1
+repositories:
+  local:
+    url: repo
+    password: e2e-pw-7731
+backups:
+  documents:
+    from: [files]
+    to: [local]
+    excludes: ["*.tmp"]
+    retention: {last: 5}

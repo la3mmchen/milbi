@@ -1,0 +1,29 @@
+# two jobs share a repo; pics keeps only its last snapshot, and its forget
+# never removes the snapshots of documents
+chmod 600 milbi.yaml
+env RESTIC_REPOSITORY=$WORK/repo
+env RESTIC_PASSWORD=e2e-pw-7731
+
+exec milbi --config milbi.yaml init shared
+exec milbi --config milbi.yaml run documents
+exec milbi --config milbi.yaml run documents
+exec milbi --config milbi.yaml run pics
+exec milbi --config milbi.yaml run pics
+exec milbi --config milbi.yaml run pics
+
+exec restic snapshots --tag job:pics --json
+stdout -count=1 '"short_id"'
+exec restic snapshots --tag job:documents --json
+stdout -count=2 '"short_id"'
+
+-- milbi.yaml --
+version: 1
+repositories:
+  shared: {url: repo, password: e2e-pw-7731}
+backups:
+  documents: {from: [docs], to: [shared], retention: {last: 5}}
+  pics: {from: [pics], to: [shared], retention: {last: 1}}
+-- docs/a.txt --
+document
+-- pics/b.jpg --
+not really a jpeg

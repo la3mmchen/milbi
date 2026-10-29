@@ -3,6 +3,8 @@ package cli
 import (
 	"bytes"
 	"errors"
+	"os"
+	"path/filepath"
 	"strings"
 	"testing"
 )
@@ -72,6 +74,28 @@ func TestDoctorMissingRestic(t *testing.T) {
 	}
 	if !strings.Contains(out, "MISSING") || !strings.Contains(errOut, "restic") {
 		t.Errorf("out %q err %q", out, errOut)
+	}
+}
+
+func TestRunMissingRestic(t *testing.T) {
+	cfg := filepath.Join(t.TempDir(), "milbi.yaml")
+	src := "version: 1\nrepositories:\n  r: {url: /r, password: env:X}\nbackups:\n  b: {from: [/a], to: [r], retention: {last: 1}}\n"
+	if err := os.WriteFile(cfg, []byte(src), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	for _, args := range [][]string{{"run", "b"}, {"init", "r"}, {"snapshots", "b"}, {"prune", "r"}} {
+		code, _, errOut := run(t, fakeEnv{}, append([]string{"--config", cfg}, args...)...)
+		if code != ExitMissing || !strings.Contains(errOut, "restic not found") {
+			t.Errorf("%v: exit %d, err %q", args, code, errOut)
+		}
+	}
+}
+
+func TestShort(t *testing.T) {
+	for id, want := range map[string]string{"": "-", "abc": "abc", "0123456789": "01234567"} {
+		if got := short(id); got != want {
+			t.Errorf("%q: got %q", id, got)
+		}
 	}
 }
 

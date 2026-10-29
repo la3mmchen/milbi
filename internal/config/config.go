@@ -28,6 +28,16 @@ type Config struct {
 
 	// Dir is the config file's directory; relative paths resolve against it.
 	Dir string `yaml:"-"`
+
+	backupOrder []string
+}
+
+// BackupNames returns the backup names in config order (sorted when the order is unknown).
+func (c *Config) BackupNames() []string {
+	if len(c.backupOrder) == len(c.Backups) {
+		return append([]string{}, c.backupOrder...)
+	}
+	return SortedKeys(c.Backups)
 }
 
 // Defaults apply to every backup.
@@ -197,6 +207,7 @@ func Parse(data []byte, dir string) (*Config, []string, error) {
 		return nil, nil, &Error{Problems: []Problem{{Msg: err.Error()}}}
 	}
 	c.Dir = dir
+	c.backupOrder = keysOf(&doc, "backups")
 	c.expand()
 	if ps := c.validate(&doc); len(ps) > 0 {
 		return c, c.warnings(), &Error{Problems: ps}
@@ -484,6 +495,28 @@ func lineOf(doc *yaml.Node, path ...string) int {
 		}
 	}
 	return line
+}
+
+// keysOf returns the keys of the top-level mapping named key, in document order.
+func keysOf(doc *yaml.Node, key string) []string {
+	n := doc
+	if n.Kind == yaml.DocumentNode && len(n.Content) > 0 {
+		n = n.Content[0]
+	}
+	if n.Kind != yaml.MappingNode {
+		return nil
+	}
+	var keys []string
+	for i := 0; i+1 < len(n.Content); i += 2 {
+		if n.Content[i].Value != key || n.Content[i+1].Kind != yaml.MappingNode {
+			continue
+		}
+		m := n.Content[i+1]
+		for j := 0; j+1 < len(m.Content); j += 2 {
+			keys = append(keys, m.Content[j].Value)
+		}
+	}
+	return keys
 }
 
 // SortedKeys returns the map's keys in order, for stable output.

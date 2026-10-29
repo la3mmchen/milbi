@@ -61,6 +61,7 @@ func newRootCmd(info BuildInfo, e env, stdout, stderr io.Writer) *cobra.Command 
 	root.SetErr(stderr)
 	var configPath string
 	root.PersistentFlags().StringVar(&configPath, "config", "", "config file (default $MILBI_CONFIG or ~/.config/milbi/config.yaml)")
-	root.AddCommand(newVersionCmd(info), newDoctorCmd(e), newConfigCmd(&configPath))
+	root.AddCommand(newVersionCmd(info), newDoctorCmd(e), newConfigCmd(&configPath),
+		newInitCmd(e, &configPath), newRunCmd(e, &configPath), newSnapshotsCmd(e, &configPath), newPruneCmd(e, &configPath))
 	return root
 }
