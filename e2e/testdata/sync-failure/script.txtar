@@ -1,0 +1,13 @@
+# a failing rsync (missing source) fails the job with exit 1; the status file holds
+# rsync's exit code and error message
+! exec milbi --config milbi.yaml run gone
+stdout '^gone: failed$'
+stdout 'rsync: '
+grep '"status": "failed"' home/.local/state/milbi/status/gone.json
+grep '"exitCode": [1-9]' home/.local/state/milbi/status/gone.json
+grep '"error": "rsync: .*missing' home/.local/state/milbi/status/gone.json
+
+-- milbi.yaml --
+version: 1
+syncs:
+  gone: {from: missing/, to: target}

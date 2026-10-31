@@ -1,0 +1,24 @@
+# an unreadable source file makes restic exit 3: the job ends in warning, milbi exits 0,
+# and retention is not applied after the incomplete snapshot
+chmod 600 milbi.yaml
+chmod 000 files/locked.txt
+exec milbi --config milbi.yaml init local
+exec milbi --config milbi.yaml run documents
+stdout '^documents: warning$'
+stdout 'some files could not be read'
+grep '"status": "warning"' home/.local/state/milbi/status/documents.json
+grep '"exitCode": 3' home/.local/state/milbi/status/documents.json
+exec sh -c 'cat home/.local/state/milbi/logs/documents/*.log'
+! stdout 'restic forget'
+chmod 644 files/locked.txt
+
+-- milbi.yaml --
+version: 1
+repositories:
+  local: {url: repo, password: e2e-pw-7731}
+backups:
+  documents: {from: [files], to: [local], retention: {last: 1}}
+-- files/readable.txt --
+fine
+-- files/locked.txt --
+nobody may read this

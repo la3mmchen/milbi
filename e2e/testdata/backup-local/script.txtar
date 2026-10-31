@@ -1,0 +1,40 @@
+# init + run against a local repo: snapshot tagged job:documents, excludes honoured,
+# password only in the env (never in logs or state)
+chmod 600 milbi.yaml
+env RESTIC_REPOSITORY=$WORK/repo
+env RESTIC_PASSWORD=e2e-pw-7731
+
+exec milbi --config milbi.yaml init local
+exists repo/config
+! exec milbi --config milbi.yaml init local
+stderr 'already initialized'
+
+exec milbi --config milbi.yaml run documents
+stdout '^documents: success$'
+stdout 'local: snapshot [0-9a-f]{8}, 2 new, 0 changed'
+
+exec restic snapshots --tag job:documents --json
+stdout -count=1 '"short_id"'
+stdout '"milbi"'
+exec restic ls latest
+stdout 'notes.txt'
+stdout 'sub dir/report.md'
+! stdout 'scratch.tmp'
+
+exists home/.local/state/milbi/status/documents.json
+grep '"status": "success"' home/.local/state/milbi/status/documents.json
+grep '"lastSuccessAt"' home/.local/state/milbi/status/documents.json
+! grep e2e-pw-7731 home/.local/state/milbi/status/documents.json
+exec sh -c 'cat home/.local/state/milbi/logs/documents/*.log'
+stdout '\$ restic backup --json'
+! stdout e2e-pw-7731
+
+# a second run adds a snapshot; nothing changed
+exec milbi --config milbi.yaml run --all
+stdout 'local: snapshot [0-9a-f]{8}, 0 new, 0 changed'
+exec restic snapshots --tag job:documents --json
+stdout -count=2 '"short_id"'
+
+exec milbi --config milbi.yaml snapshots documents
+stdout 'repository local:'
+stdout '2 snapshots'

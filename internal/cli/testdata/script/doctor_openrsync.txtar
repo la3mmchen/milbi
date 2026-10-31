@@ -1,0 +1,14 @@
+chmod 755 bin/restic
+chmod 755 bin/rsync
+env PATH=$WORK/bin:$PATH
+
+exec milbi doctor
+stdout 'warning: rsync is openrsync'
+
+-- bin/restic --
+#!/bin/sh
+[ "$1" = version ] || exit 1
+echo "restic 0.17.0 fake"
+-- bin/rsync --
+#!/bin/sh
+echo "openrsync: protocol version 29"

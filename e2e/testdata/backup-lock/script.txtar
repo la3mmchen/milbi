@@ -1,0 +1,29 @@
+# the same job twice in parallel: one run is skipped (exit 4), the other succeeds.
+# A wrapper delays the real restic's backup so the two runs overlap.
+chmod 600 milbi.yaml
+chmod 755 slow/restic
+exec milbi --config milbi.yaml init local
+env REAL_PATH=$PATH
+env PATH=$WORK/slow:$PATH
+
+exec milbi --config milbi.yaml run documents &first&
+exec sleep 1
+! exec milbi --config milbi.yaml run documents
+stdout '^documents: skipped$'
+stderr 'skipped \(locked\)'
+wait first
+stdout '^documents: success$'
+grep '"status": "success"' home/.local/state/milbi/status/documents.json
+
+-- milbi.yaml --
+version: 1
+repositories:
+  local: {url: repo, password: e2e-pw-7731}
+backups:
+  documents: {from: [files], to: [local], retention: {last: 1}}
+-- files/a.txt --
+a
+-- slow/restic --
+#!/bin/sh
+[ "$1" = backup ] && sleep 3
+PATH=$REAL_PATH exec restic "$@"
