@@ -1,5 +1,6 @@
 # backup commands against a fake restic that records argv and the RESTIC_* env
 chmod 755 bin/restic
+chmod 755 bin/rsync
 chmod 600 milbi.yaml
 env PATH=$WORK/bin:$PATH
 mkdir src/docs
@@ -59,10 +60,10 @@ stdout '^pics \[local\]: restic forget --tag job:pics --group-by host,tags --kee
 ! exec milbi --config milbi.yaml run
 stderr 'name one or more jobs, or use --all'
 ! exec milbi --config milbi.yaml run docs --all
-! exec milbi --config milbi.yaml run mirror
+! exec milbi --config milbi.yaml snapshots mirror
 stderr 'mirror is a sync'
 ! exec milbi --config milbi.yaml run nope
-stderr 'backup "nope" is not in the config'
+stderr 'job "nope" is not in the config'
 ! exec milbi --config missing.yaml run docs
 stderr 'invalid config'
 
@@ -89,7 +90,10 @@ backups:
   docs: {from: [src/docs], to: [local], excludes: ["*.tmp"], retention: {last: 3}}
   pics: {from: [src/docs], to: [local], retention: {last: 1}}
 syncs:
-  mirror: {from: src/docs, to: /tmp/mirror-target}
+  mirror: {from: src/docs, to: target}
+-- bin/rsync --
+#!/bin/sh
+echo "$*" >> "$WORK/rsync-argv"
 -- want-argv --
 backup --json --tag milbi --tag job:docs --exclude *.tmp $WORK/src/docs
 forget --tag job:docs --group-by host,tags --keep-last 3

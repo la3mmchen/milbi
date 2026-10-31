@@ -132,6 +132,18 @@ func TestBackupNames(t *testing.T) {
 	if got := strings.Join(c.BackupNames(), ","); got != "alpha,zeta" {
 		t.Errorf("fallback: got %s", got)
 	}
+	src = "version: 1\nsyncs:\n  zeta: {from: /a, to: /x}\n  alpha: {from: /b, to: /y}\n"
+	c, _, err = Parse([]byte(src), "/")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got := strings.Join(c.SyncNames(), ","); got != "zeta,alpha" {
+		t.Errorf("sync config order: got %s", got)
+	}
+	c.syncOrder = nil
+	if got := strings.Join(c.SyncNames(), ","); got != "alpha,zeta" {
+		t.Errorf("sync fallback: got %s", got)
+	}
 	if keysOf(&yaml.Node{Kind: yaml.ScalarNode}, "backups") != nil {
 		t.Error("keysOf on a scalar: want nil")
 	}

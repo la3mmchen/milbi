@@ -1,0 +1,59 @@
+# sync jobs against a fake rsync that records argv and prints --stats lines
+chmod 755 bin/rsync
+env PATH=$WORK/bin:$PATH
+mkdir src
+
+# run: from/to verbatim (trailing slash kept), --delete only with delete: true, stats parsed
+exec milbi --config milbi.yaml run keep
+stdout '^keep: success$'
+stdout '1234 files transferred, 1.2 MiB sent'
+exec milbi --config milbi.yaml run mirror
+stdout '^mirror: success$'
+cmpenv argv want-argv
+grep '"filesTransferred": 1234' home/.local/state/milbi/status/mirror.json
+grep '"bytesSent": 1234567' home/.local/state/milbi/status/mirror.json
+exec sh -c 'cat home/.local/state/milbi/logs/mirror/*.log'
+stdout '\$ rsync -a --partial --stats --delete'
+
+# a failing rsync fails the job with exit 1 and its message in the state file
+env FAKE_RSYNC_EXIT=23
+! exec milbi --config milbi.yaml run keep
+stdout '^keep: failed$'
+stdout 'rsync: some files could not be transferred'
+grep '"exitCode": 23' home/.local/state/milbi/status/keep.json
+grep 'some files could not be transferred' home/.local/state/milbi/status/keep.json
+
+# dry run runs rsync with -n -v and writes no state
+rm argv
+! exec milbi --config milbi.yaml run --dry-run keep
+stderr 'dry run failed'
+env FAKE_RSYNC_EXIT=
+exec milbi --config milbi.yaml run --dry-run keep
+stdout '^keep: rsync -a --partial --stats -n -v '
+grep '^-a --partial --stats -n -v ' argv
+
+# b2 syncs fail as a job until the b2 runner exists
+! exec milbi --config milbi.yaml run photos
+stdout '^photos: failed$'
+stdout 'b2 syncs are not supported yet'
+! exec milbi --config milbi.yaml run --dry-run photos
+stderr 'b2 syncs are not supported yet'
+
+-- milbi.yaml --
+version: 1
+syncs:
+  keep: {from: src/, to: target}
+  mirror: {from: src, to: host:/backup/src, delete: true, excludes: ["*.tmp", "cache/"]}
+  photos: {from: src/, to: "b2://bucket/photos", b2_key_id: env:B2_ID, b2_key: env:B2_KEY}
+-- want-argv --
+-a --partial --stats $WORK/src/ $WORK/target
+-a --partial --stats --delete --exclude *.tmp --exclude cache/ $WORK/src host:/backup/src
+-- bin/rsync --
+#!/bin/sh
+echo "$*" >> "$WORK/argv"
+if [ -n "$FAKE_RSYNC_EXIT" ]; then
+  echo "rsync: some files could not be transferred" >&2
+  exit "$FAKE_RSYNC_EXIT"
+fi
+echo "Number of regular files transferred: 1,234"
+echo "Total bytes sent: 1,234,567"

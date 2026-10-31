@@ -29,6 +29,7 @@ type State struct {
 	ExitCode        int         `json:"exitCode"`
 	Error           string      `json:"error,omitempty"`
 	Stats           []RepoStats `json:"stats,omitempty"`
+	Sync            *SyncStats  `json:"sync,omitempty"`
 	Log             string      `json:"log"`
 }
 

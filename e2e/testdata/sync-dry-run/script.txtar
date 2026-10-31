@@ -1,0 +1,14 @@
+# --dry-run runs rsync -n: it lists the planned changes and the target stays untouched
+mkdir target
+exec milbi --config milbi.yaml run --dry-run copy
+stdout '^copy: rsync -a --partial --stats -n -v '
+stdout 'notes.txt'
+! exists target/notes.txt
+! exists home/.local/state/milbi/status/copy.json
+
+-- milbi.yaml --
+version: 1
+syncs:
+  copy: {from: files/, to: target}
+-- files/notes.txt --
+notes

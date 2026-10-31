@@ -91,6 +91,21 @@ func TestRunMissingRestic(t *testing.T) {
 	}
 }
 
+func TestRunMissingRsync(t *testing.T) {
+	cfg := filepath.Join(t.TempDir(), "milbi.yaml")
+	src := "version: 1\nsyncs:\n  s: {from: /a, to: /b}\n"
+	if err := os.WriteFile(cfg, []byte(src), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	e := fakeEnv{paths: map[string]string{"restic": "/bin/restic"}}
+	for _, args := range [][]string{{"run", "s"}, {"run", "--all"}, {"run", "--dry-run", "s"}} {
+		code, _, errOut := run(t, e, append([]string{"--config", cfg}, args...)...)
+		if code != ExitMissing || !strings.Contains(errOut, "rsync not found") {
+			t.Errorf("%v: exit %d, err %q", args, code, errOut)
+		}
+	}
+}
+
 func TestShort(t *testing.T) {
 	for id, want := range map[string]string{"": "-", "abc": "abc", "0123456789": "01234567"} {
 		if got := short(id); got != want {

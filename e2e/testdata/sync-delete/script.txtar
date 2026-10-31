@@ -1,0 +1,20 @@
+# with delete: true a file removed from the source is removed from the target
+exec milbi --config milbi.yaml run mirror
+stdout '^mirror: success$'
+exists target/notes.txt
+exists target/keep.txt
+
+rm files/notes.txt
+exec milbi --config milbi.yaml run mirror
+stdout '^mirror: success$'
+! exists target/notes.txt
+exists target/keep.txt
+
+-- milbi.yaml --
+version: 1
+syncs:
+  mirror: {from: files/, to: target, delete: true}
+-- files/notes.txt --
+notes
+-- files/keep.txt --
+keep

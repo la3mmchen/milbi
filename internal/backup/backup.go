@@ -33,10 +33,11 @@ const (
 // resticIncomplete is restic's exit code for a snapshot that misses unreadable files.
 const resticIncomplete = 3
 
-// Runner runs restic for the jobs of one config.
+// Runner runs restic and rsync for the jobs of one config.
 type Runner struct {
 	Config   *config.Config
 	Restic   string // path of the restic binary
+	Rsync    string // path of the rsync binary, "" when not installed
 	StateDir string
 	Out, Err io.Writer
 	Now      func() time.Time
@@ -58,6 +59,7 @@ type Result struct {
 	ExitCode int
 	Error    string
 	Stats    []RepoStats
+	Sync     *SyncStats
 	Log      string
 }
 
@@ -136,7 +138,8 @@ func (r *Runner) DryRun(job string) {
 	}
 }
 
-// Run backs up job into each of its repositories, then applies its retention there.
+// Run runs a backup or sync job. A backup goes into each of its repositories, followed by
+// its retention there; a sync runs rsync once.
 // A job whose lock is held by another run is skipped and leaves the state file alone.
 func (r *Runner) Run(job string) Result {
 	res := Result{Job: job}
@@ -168,12 +171,16 @@ func (r *Runner) Run(job string) Result {
 		return res
 	}
 
-	r.runRepos(job, logFile, &res)
+	if _, ok := r.Config.Syncs[job]; ok {
+		r.runSync(job, logFile, &res)
+	} else {
+		r.runRepos(job, logFile, &res)
+	}
 	_ = logFile.Close()
 	r.trimLogs(job)
 
 	end := r.Now()
-	st.Status, st.ExitCode, st.Error, st.Stats = res.Status, res.ExitCode, res.Error, res.Stats
+	st.Status, st.ExitCode, st.Error, st.Stats, st.Sync = res.Status, res.ExitCode, res.Error, res.Stats, res.Sync
 	st.EndedAt = &end
 	st.DurationSeconds = end.Sub(start).Seconds()
 	if res.Status == StatusSuccess || res.Status == StatusWarning {

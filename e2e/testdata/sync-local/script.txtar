@@ -1,0 +1,27 @@
+# rsync files/ (trailing slash: its contents) into target/, excludes honoured, count in the
+# status file; without delete: true a file removed from the source stays in the target
+exec milbi --config milbi.yaml run copy
+stdout '^copy: success$'
+stdout '2 files transferred, [1-9][0-9.]* [KMG]?i?B sent'
+exists target/notes.txt
+exists 'target/sub dir/report.md'
+! exists target/scratch.tmp
+! exists target/files
+grep '"status": "success"' home/.local/state/milbi/status/copy.json
+grep '"filesTransferred": 2' home/.local/state/milbi/status/copy.json
+
+rm files/notes.txt
+exec milbi --config milbi.yaml run copy
+stdout '0 files transferred'
+exists target/notes.txt
+
+-- milbi.yaml --
+version: 1
+syncs:
+  copy: {from: files/, to: target, excludes: ["*.tmp"]}
+-- files/notes.txt --
+notes
+-- files/sub dir/report.md --
+report
+-- files/scratch.tmp --
+scratch

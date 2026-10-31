@@ -30,6 +30,7 @@ type Config struct {
 	Dir string `yaml:"-"`
 
 	backupOrder []string
+	syncOrder   []string
 }
 
 // BackupNames returns the backup names in config order (sorted when the order is unknown).
@@ -38,6 +39,14 @@ func (c *Config) BackupNames() []string {
 		return append([]string{}, c.backupOrder...)
 	}
 	return SortedKeys(c.Backups)
+}
+
+// SyncNames returns the sync names in config order (sorted when the order is unknown).
+func (c *Config) SyncNames() []string {
+	if len(c.syncOrder) == len(c.Syncs) {
+		return append([]string{}, c.syncOrder...)
+	}
+	return SortedKeys(c.Syncs)
 }
 
 // Defaults apply to every backup.
@@ -65,13 +74,15 @@ type Backup struct {
 }
 
 // Sync is a plain-file mirror: an rsync job, or a `b2 sync` when To starts with B2Prefix.
-// B2KeyID and B2Key are secret references, set only on b2 syncs.
+// B2KeyID and B2Key are secret references, set only on b2 syncs. Excludes are the sync's
+// own; the default excludes apply to backups only.
 type Sync struct {
-	From    string `yaml:"from"`
-	To      string `yaml:"to"`
-	Delete  bool   `yaml:"delete"`
-	B2KeyID string `yaml:"b2_key_id"`
-	B2Key   string `yaml:"b2_key"`
+	From     string   `yaml:"from"`
+	To       string   `yaml:"to"`
+	Excludes []string `yaml:"excludes"`
+	Delete   bool     `yaml:"delete"`
+	B2KeyID  string   `yaml:"b2_key_id"`
+	B2Key    string   `yaml:"b2_key"`
 }
 
 // B2Prefix marks a sync target in Backblaze B2.
@@ -208,6 +219,7 @@ func Parse(data []byte, dir string) (*Config, []string, error) {
 	}
 	c.Dir = dir
 	c.backupOrder = keysOf(&doc, "backups")
+	c.syncOrder = keysOf(&doc, "syncs")
 	c.expand()
 	if ps := c.validate(&doc); len(ps) > 0 {
 		return c, c.warnings(), &Error{Problems: ps}
